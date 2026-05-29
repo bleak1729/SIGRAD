@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/proxy/sismos", "destination": "/api/sismos" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
