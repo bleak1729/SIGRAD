@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>SALA SITUACIONAL PC LAGUNILLAS — MONITOREO SÍSMICO V9.9.50</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    /* ── Variables Fluent UI 9 ── */
+    :root {
+      --azul:    #0078d4;
+      --naranja: #f59e0b;
+      --rojo:    #c50f1f;
+      --gris:    #616161;
+      --verde:   #107c10;
+      --oscuro:  #424242;
+      --pcad:    #107c10;
+      --morado:  #6b2d8b;
+    }
+
+    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: row;
+      background: #1a1a1a;
+    }
+
+    /* ── PANEL — Fluent UI 9 ── */
+    .panel {
+      width: 410px;
+      min-width: 410px;
+      background: #ffffff;
+      padding: 12px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.12);
+      border-right: 1px solid #e0e0e0;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: thin;
+      scrollbar-color: #bfdbfe #f0f0f0;
+    }
+    .panel::-webkit-scrollbar       { width: 5px; }
+    .panel::-webkit-scrollbar-thumb { background: #bfdbfe; border-radius: 4px; }
+
+    /* ── HEADER — dentro del panel ── */
+    header {
+      background: #0078d4;
+      color: white;
+      padding: 12px 14px;
+      text-align: center;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    header h2    { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+    header small { font-size: 10px; opacity: 0.85; }
+
+    /* ── MAPA ── */
+    #map {
+      flex: 1;
+      background: #e8e8e8;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── SECCIONES — Fluent ── */
+    .section-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: #0078d4;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin: 8px 0 4px;
+    }
+    .section-divider {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 10px 0 6px;
+    }
+
+    /* ── LABELS — Fluent ── */
+    label {
+      font-weight: 600;
+      font-size: 9px;
+      color: #616161;
+      display: block;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── TEXTAREA ── */
+    .input-container { position: relative; width: 100%; margin-bottom: 4px; }
+
+    textarea {
+      width: 100%;
+      border: 1px solid #d1d1d1;
+      border-radius: 4px;
+      padding: 8px;
+      padding-top: 26px;
+      box-sizing: border-box;
+      resize: none;
+      font-size: 12px;
+      background: #fafafa;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { outline: none; border-color: #0078d4; background: #fff; }
+
+    .clear-area-btn {
+      position: absolute;
+      top: 5px; right: 5px;
+      background: var(--gris);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 9px;
+      padding: 3px 7px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: bold;
+      opacity: 0.75;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .clear-area-btn:hover { opacity: 1; background: var(--rojo); }
+
+    /* ── BOTONES — Fluent UI 9 ── */
+    .btn {
+      width: 100%;
+      padding: 9px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      margin-top: 6px;
+      text-transform: uppercase;
+      font-size: 10px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      letter-spacing: 0.3px;
+      box-sizing: border-box;
+    }
+    .btn:hover  { opacity: 0.88; }
+    .btn:active { opacity: 0.75; }
+
+    .btn-blue   { background: #0078d4; }
+    .btn-orange { background: #f59e0b; }
+    .btn-green  { background: #107c10; }
+    .btn-purple { background: #6b2d8b; }
+    .btn-red    { background: #c50f1f; }
+    .btn-dark   { background: #424242; }
+
+    /* ── CAJA DE RESULTADO — Fluent ── */
+    .res-box {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      border-left: 4px solid #0078d4;
+      margin-top: 8px;
+      background: #f0f6ff;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: 1px solid #bfdbfe;
+      border-left: 4px solid #0078d4;
+      line-height: 1.4;
+    }
+    .alerta-roja {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #c50f1f;
+      color: #c50f1f;
+      animation: pulse-red 2s infinite;
+    }
+    .alerta-naranja {
+      background: #fff8ec;
+      border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+      color: #7a4f00;
+    }
+    @keyframes pulse-red {
+      0%   { box-shadow: 0 0 0 0    rgba(198,40,40,0.45); }
+      70%  { box-shadow: 0 0 0 10px rgba(198,40,40,0); }
+      100% { box-shadow: 0 0 0 0    rgba(198,40,40,0); }
+    }
+
+    /* ── IMAGEN MAPA ESTÁTICO ── */
+    #staticMapImg {
+      width: 100%;
+      border-radius: 6px;
+      margin-top: 8px;
+      display: none;
+      border: 2px solid #ddd;
+      cursor: copy;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    #lblMap { display: none; color: var(--naranja); }
+
+    /* ── CANVAS TENDENCIA ── */
+    canvas {
+      width: 100%;
+      max-height: 80px;
+      background: white;
+      border-radius: 6px;
+      margin-top: 4px;
+      border: 1px solid #ddd;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* ── HISTORIAL TABLE ── */
+    .hist-container {
+      margin-top: 6px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: 10px; background: white; }
+    .hist-table th {
+      background: #eff6ff;
+      color: #0078d4;
+      padding: 7px 8px;
+      text-align: left;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid #bfdbfe;
+    }
+    .hist-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+      color: #333;
+    }
+    .hist-table tr:hover td { background: #f5f5f5; }
+
+    /* Badge magnitud */
+    .mag-badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: white;
+      font-weight: bold;
+      display: inline-block;
+      min-width: 28px;
+      text-align: center;
+      font-size: 10px;
+    }
+
+    /* ── MARCADOR SEDE ── */
+    .sede-marker {
+      background-color: #0055ff;
+      border: 3px solid #00ffff;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      width: 20px !important;
+      height: 20px !important;
+      box-shadow: 0 0 10px rgba(0,255,255,0.7);
+    }
+
+    /* ── FOOTER ── */
+    .footer-info {
+      font-size: 9px;
+      text-align: center;
+      color: #777;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid #ddd;
+      line-height: 1.6;
+    }
+    .footer-info b { color: #0078d4; }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateX(30px);
+      animation: toast-in 0.3s forwards, toast-out 0.3s 2.7s forwards;
+      max-width: 280px;
+    }
+    .toast.ok      { background: #2e7d32; }
+    .toast.info    { background: #1565c0; }
+    .toast.warning { background: #e65100; }
+    @keyframes toast-in  { to { opacity: 1; transform: translateX(0); } }
+    @keyframes toast-out { to { opacity: 0; transform: translateX(30px); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 800px) {
+      body  { flex-direction: column; overflow: auto; }
+      .panel { width: 100%; min-width: 100%; height: auto; border-right: none; }
+      #map  { height: 320px; flex: none; width: 100%; }
+      body  { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- Modal confirmación borrar historial -->
+<div id="modal-borrar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);z-index:9000;justify-content:center;align-items:center;">
+  <div style="width:min(380px,92vw);border-radius:8px;overflow:hidden;background:#ffffff;border:1px solid #e0e0e0;box-shadow:0 8px 40px rgba(0,0,0,0.22);font-family:'Segoe UI',Arial,sans-serif;">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #e0e0e0;">
+      <div style="width:34px;height:34px;border-radius:50%;background:#fde7e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fa-solid fa-trash-can" style="color:#c50f1f;font-size:14px;"></i>
+      </div>
+      <span style="font-size:0.95rem;font-weight:600;color:#242424;">Borrar Historial</span>
+    </div>
+    <div style="padding:18px 20px;">
+      <p style="margin:0 0 6px;font-size:0.88rem;font-weight:500;color:#242424;">¿Eliminar todo el historial sísmico?</p>
+      <p style="margin:0;font-size:0.78rem;color:#616161;line-height:1.5;">Esta acción es irreversible. Se eliminarán todos los registros guardados localmente.</p>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid #e0e0e0;background:#fafafa;">
+      <button onclick="document.getElementById('modal-borrar').style.display='none'"
+        style="padding:8px 20px;font-size:0.83rem;font-weight:600;color:#242424;background:none;border:1px solid #d1d1d1;border-radius:4px;cursor:pointer;transition:background 0.15s;"
+        onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='none'">
+        No, cancelar
+      </button>
+      <button onclick="confirmarBorrar()"
+        style="padding:8px 20px;font-size:0.83rem;font-weight:600;color:#fff;background:#c50f1f;border:none;border-radius:4px;cursor:pointer;transition:opacity 0.15s;"
+        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        <i class="fa-solid fa-trash-can" style="margin-right:5px;"></i> Sí, borrar
+      </button>
+    </div>
+  </div>
+</div>
+
+  <div class="panel">
+
+
+    <div class="section-title">
+      <i class="fa-solid fa-wave-square"></i> Entrada de Datos — FUNVISIS
+    </div>
+
+    <!-- Botón carga automática desde API -->
+    <button id="btn-api-load" class="btn btn-green" style="margin-bottom:6px;" onclick="cargarDesdeAPI(true)">
+      <i class="fa-solid fa-satellite-dish"></i> CARGAR ÚLTIMO SISMO (API)
+    </button>
+
+    <div id="api-status" style="font-size:9px;color:#616161;text-align:center;margin-bottom:2px;display:none;"></div>
+    <div id="api-countdown" style="font-size:9px;color:#9e9e9e;text-align:center;margin-bottom:4px;display:none;">
+      Próxima sincronización en <span id="api-countdown-num" style="font-weight:700;color:#0078d4;">5:00</span>
+    </div>
+
+    <div class="input-container">
+      <button class="clear-area-btn" onclick="limpiarArea()" title="Limpiar área de texto">
+        <i class="fa-solid fa-xmark"></i> Limpiar
+      </button>
+      <textarea id="txt" placeholder="Pegue aquí el reporte de FUNVISIS o use el botón de arriba para cargar automáticamente..." style="height:90px;"></textarea>
+    </div>
+
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; align-items:stretch;">
+
+      <button class="btn btn-blue"
+              style="flex:2; min-width:140px; margin-top:0;"
+              onclick="procesarFUNVISIS()">
+        <i class="fa-solid fa-magnifying-glass-chart"></i> ANALIZAR EVENTO
+      </button>
+
+      <a href="http://www.funvisis.gob.ve/" target="_blank"
+         style="text-decoration:none; flex:1; min-width:90px; display:flex;">
+        <button class="btn btn-dark" style="margin-top:0; width:100%; height:100%;">
+          <i class="fa-solid fa-globe"></i> FUNVISIS
+        </button>
+      </a>
+
+      <button class="btn btn-red"
+              style="flex:1; min-width:80px; margin-top:0;"
+              onclick="borrarTodoElHistorial()">
+        <i class="fa-solid fa-trash-can"></i> BORRAR
+      </button>
+
+    </div>
+
+    <div id="prev" class="res-box" style="display:none;"></div>
+
+    <label id="lblMap" style="color:var(--naranja); margin-top:8px;">
+      <i class="fa-solid fa-map-location-dot"></i> MAPA PARA WHATSAPP
+      <span style="font-weight:normal; font-size:8px;">(Clic para copiar)</span>
+    </label>
+    <img id="staticMapImg" src=""
+         onclick="copiarImagenMapa()"
+         title="Clic para copiar imagen al portapapeles"/>
+
+    <hr class="section-divider">
+
+    <div class="section-title">
+      <i class="fa-solid fa-file-lines"></i> Generar Reporte
+    </div>
+    <div style="display:flex; gap:6px; margin-top:4px; align-items:stretch;">
+      <button class="btn btn-orange" style="width:100%; margin-top:0;" onclick="copiarSNGR()">
+        <i class="fa-solid fa-shield"></i> REPORTE SNGR
+      </button>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="section-title">
+      <i class="fa-solid fa-chart-bar"></i> Tendencia (Últimos 8 Sismos)
+    </div>
+    <canvas id="chartMag" width="400" height="80"></canvas>
+
+    <hr class="section-divider">
+
+    <div class="section-title">
+      <i class="fa-solid fa-clock-rotate-left"></i> Registro Cronológico
+    </div>
+    <div class="hist-container">
+      <table class="hist-table">
+        <thead>
+          <tr>
+            <th style="width:72px;">Fecha / Hora</th>
+            <th>Ubicación y Referencia</th>
+            <th style="width:38px; text-align:center;">Mw</th>
+          </tr>
+        </thead>
+        <tbody id="histListaBody"></tbody>
+      </table>
+    </div>
+
+    <button class="btn btn-purple" style="margin-top:10px;" onclick="generarInformePDF()">
+      <i class="fa-solid fa-file-pdf"></i> DESCARGAR HISTORIAL (PDF)
+    </button>
+
+
+  </div><div id="map"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   CONSTANTES Y ESTADO GLOBAL
+══════════════════════════════════════════ */
+const sedeCoord   = [10.19543, -71.31183];
+const STORAGE_KEY = "pc_lagunillas_v9946";
+
+let map, waveLayer, sismoMarkers = [];
+let dSismo = {
+  emision: "S/I", fechaSismo: "S/I", hora: "S/I",
+  mag: "0,00", lat: "0,000", lon: "0,000",
+  prof: "0,00", loc: "S/I", dist: "0", rumbo: "S/I"
+};
+
+/* ── Utilidades ── */
+function fNum(n, d) { return parseFloat(n).toFixed(d).replace('.', ','); }
+
+function mostrarToast(msg, tipo = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${tipo}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+function limpiarArea() {
+  document.getElementById('txt').value = '';
+  document.getElementById('txt').focus();
+}
+
+/* ══════════════════════════════════════════
+   MAPA
+══════════════════════════════════════════ */
+function initMap() {
+  if (map) { map.remove(); }
+  map = L.map('map').setView([10.19, -71.31], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  waveLayer = L.layerGroup().addTo(map);
+
+  const sedeIcon = L.divIcon({
+    className: 'custom-div-icon',
+    html: "<div class='sede-marker'></div>",
+    iconSize: [20, 20],
+    iconAnchor: [10, 20]
+  });
+  L.marker(sedeCoord, { icon: sedeIcon, zIndexOffset: 1000 })
+    .addTo(map)
+    .bindTooltip("PC LAGUNILLAS", { permanent: true, direction: 'right' });
+
+  renderHistorial();
+  refrescarDashboard();
+  cargarSismosPersistentes();
+}
+
+function cargarSismosPersistentes() {
+  const h = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  sismoMarkers.forEach(m => map.removeLayer(m));
+  sismoMarkers = [];
+  h.forEach(e => {
+    const lat = parseFloat(e.lat.replace(',', '.'));
+    const lon = parseFloat(e.lon.replace(',', '.'));
+    if (!isNaN(lat) && !isNaN(lon)) {
+      const m = L.circleMarker([lat, lon], {
+        color: '#000', fillColor: getColor(e.mag),
+        radius: 7, weight: 1.5, fillOpacity: 0.9
+      }).addTo(map).bindPopup(`<b>Mw ${e.mag}</b><br>${e.loc}`);
+      sismoMarkers.push(m);
+    }
+  });
+}
+
+function dibujarOndas(lat, lon, mag) {
+  waveLayer.clearLayers();
+  const m      = parseFloat(mag.toString().replace(',', '.'));
+  const radioS = m * 18000;
+  const radioP = m * 38000;
+  L.circle([lat, lon], {
+    radius: radioP, color: '#f1c40f',
+    weight: 1.8, fillOpacity: 0.08, dashArray: '10, 15'
+  }).addTo(waveLayer);
+  L.circle([lat, lon], {
+    radius: radioS, color: '#ff0000',
+    weight: 3.5, opacity: 0.8, fillOpacity: 0.18
+  }).addTo(waveLayer);
+}
+
+function generarMapaEstatico(la, lo) {
+  const img = document.getElementById('staticMapImg');
+  const lbl = document.getElementById('lblMap');
+  img.src = `https://static-maps.yandex.ru/1.x/?lang=es_ES&ll=${lo},${la}&z=8&l=map&size=420,250&pt=${lo},${la},pm2rdl~${sedeCoord[1]},${sedeCoord[0]},pm2blm`;
+  img.style.display = 'block';
+  lbl.style.display = 'block';
+}
+
+async function copiarImagenMapa() {
+  const img = document.getElementById('staticMapImg');
+  try {
+    const data = await fetch(img.src);
+    const blob = await data.blob();
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    mostrarToast('Imagen copiada al portapapeles.', 'ok');
+  } catch(err) {
+    mostrarToast('Error al copiar la imagen.', 'warning');
+  }
+}
+
+/* ══════════════════════════════════════════
+   PROCESAMIENTO FUNVISIS
+══════════════════════════════════════════ */
+function procesarFUNVISIS() {
+  const raw = document.getElementById('txt').value;
+  if (!raw.trim()) {
+    mostrarToast('Por favor pegue un reporte de FUNVISIS.', 'warning');
+    return;
+  }
+
+  const t       = raw.replace(/\s+/g, ' ');
+  const fechaRaw = (t.match(/(\d{2}[\/|-]\d{2}[\/|-]\d{4})/) || ["","S/I"])[1];
+  const hora    = (t.match(/(\d{1,2}:\d{2})/) || ["","S/I"])[1];
+  const magRaw  = parseFloat(t.match(/magnitud\s*[:=]?\s*(\d+[\.]?\d*)/i)?.[1]) || 0;
+  const laRaw   = parseFloat(t.match(/latitud\s*[:=]?\s*(-?\d+[\.]?\d*)/i)?.[1]);
+  const loRaw   = parseFloat(t.match(/longitud\s*[:=]?\s*(-?\d+[\.]?\d*)/i)?.[1]);
+  const profRaw = parseFloat(t.match(/profundidad\s*[:=]?\s*(\d+[\.]?\d*)/i)?.[1]) || 0;
+  let locF      = t.match(/(?:localizado a|al)\s*(.+?)(?=\s*profundidad|$)/i)?.[1]?.trim() || "S/I";
+  locF          = locF.replace(/,$/, "");
+
+  if (isNaN(laRaw) || isNaN(loRaw)) {
+    mostrarToast('No se detectaron coordenadas válidas en el texto.', 'warning');
+    return;
+  }
+
+  const distKm = (map.distance([laRaw, loRaw], sedeCoord) / 1000).toFixed(1);
+  const rumbo  = calcularRumbo(laRaw, loRaw, sedeCoord[0], sedeCoord[1]);
+
+  dSismo = {
+    emision:    new Date().toLocaleDateString('es-ES'),
+    fechaSismo: fechaRaw.replace(/-/g, '/'),
+    hora,
+    mag:  fNum(magRaw,  2),
+    lat:  fNum(laRaw,   3),
+    lon:  fNum(loRaw,   3),
+    prof: fNum(profRaw, 2),
+    loc: locF, dist: distKm, rumbo
+  };
+
+  const pBox = document.getElementById('prev');
+  pBox.className = "res-box";
+  let msgAlerta = "";
+
+  if (distKm < 50 && magRaw >= 4.0) {
+    pBox.classList.add("alerta-roja");
+    msgAlerta = `<br><i class="fa-solid fa-triangle-exclamation"></i> <b>ALERTA: POSIBLE PERCEPCIÓN LOCAL</b>`;
+  } else if (distKm < 100 || magRaw >= 4.5) {
+    pBox.classList.add("alerta-naranja");
+    msgAlerta = `<br><i class="fa-solid fa-bell"></i> <b>MONITOREO ACTIVO</b>`;
+  }
+
+  pBox.innerHTML = `<i class="fa-solid fa-circle-radiation"></i> &nbsp;<b>Mw ${dSismo.mag}</b> — ${distKm} km al <b>${rumbo}</b> de Ciudad Ojeda.${msgAlerta}`;
+
+  generarMapaEstatico(laRaw, loRaw);
+  dibujarOndas(laRaw, loRaw, magRaw);
+  map.setView([laRaw, loRaw], 8);
+  agregarAlHistorial(dSismo);
+}
+
+/* ══════════════════════════════════════════
+   UTILITARIAS GEOGRÁFICAS / COLOR
+══════════════════════════════════════════ */
+function calcularRumbo(la1, lo1, la2, lo2) {
+  const dy = la1 - la2, dx = lo1 - lo2;
+  if (Math.abs(dy) > 1.5 * Math.abs(dx)) return dy > 0 ? "Norte"   : "Sur";
+  if (Math.abs(dx) > 1.5 * Math.abs(dy)) return dx > 0 ? "Este"    : "Oeste";
+  return dy > 0 && dx > 0 ? "Noreste"
+       : dy > 0            ? "Noroeste"
+       : dx > 0            ? "Sureste"
+       :                     "Suroeste";
+}
+
+function getColor(m) {
+  const v = parseFloat(m.toString().replace(',', '.'));
+  if (v < 3.0) return "#28a745";
+  if (v < 4.0) return "#ffc107";
+  if (v < 5.0) return "#fd7e14";
+  return "#dc3545";
+}
+
+/* ══════════════════════════════════════════
+   HISTORIAL
+══════════════════════════════════════════ */
+function agregarAlHistorial(ev) {
+  const h   = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const key = `${ev.fechaSismo}_${ev.hora}`;
+  // Dedup: no agregar si ya existe un sismo con la misma fecha+hora
+  if (h.some(e => `${e.fechaSismo}_${e.hora}` === key)) {
+    renderHistorial();
+    return;
+  }
+  h.unshift(ev);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(h.slice(0, 30)));
+  renderHistorial();
+  refrescarDashboard();
+  cargarSismosPersistentes();
+}
+
+function renderHistorial() {
+  const h    = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const body = document.getElementById("histListaBody");
+  if (h.length === 0) {
+    body.innerHTML = `<tr><td colspan="3"
+      style="text-align:center; color:#999; padding:10px;">
+      <i class="fa-solid fa-inbox"></i> Sin datos registrados</td></tr>`;
+    return;
+  }
+  body.innerHTML = h.map(e => `
+    <tr>
+      <td><b>${e.fechaSismo}</b><br><span style="color:#666;">${e.hora}</span></td>
+      <td>${e.loc}. A ${e.dist} km al ${e.rumbo} de Ciudad Ojeda.</td>
+      <td style="text-align:center;">
+        <span class="mag-badge" style="background:${getColor(e.mag)}">${e.mag}</span>
+      </td>
+    </tr>`).join('');
+}
+
+function borrarTodoElHistorial() {
+  const m = document.getElementById('modal-borrar');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function confirmarBorrar() {
+  document.getElementById('modal-borrar').style.display = 'none';
+  localStorage.removeItem(STORAGE_KEY);
+  renderHistorial();
+  refrescarDashboard();
+  cargarSismosPersistentes();
+  mostrarToast('Historial eliminado', 'ok');
+}
+
+/* ══════════════════════════════════════════
+   GRÁFICO CANVAS
+══════════════════════════════════════════ */
+function refrescarDashboard() {
+  const h      = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const canvas = document.getElementById("chartMag");
+  const ctx    = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!h.length) return;
+
+  const logs = h.slice(0, 8).reverse();
+  logs.forEach((e, i) => {
+    const m    = parseFloat(e.mag.replace(',', '.'));
+    const hBar = Math.min(m * 8, canvas.height - 25);
+    const x    = 55 + (i * 45);
+    const y    = canvas.height - hBar - 15;
+    ctx.fillStyle = getColor(m);
+    ctx.fillRect(x, y, 22, hBar);
+    ctx.fillStyle = "#333";
+    ctx.font = "bold 9px Arial";
+    ctx.fillText(e.mag, x + 1, y - 4);
+  });
+}
+
+/* ══════════════════════════════════════════
+   REPORTES
+══════════════════════════════════════════ */
+function copiarSNGR() {
+  if (dSismo.fechaSismo === "S/I") {
+    mostrarToast('Primero analice un evento sísmico.', 'warning');
+    return;
+  }
+  const t =
+`*SISTEMA NACIONAL GESTIÓN DE RIESGO*
+*PROTECCIÓN CIVIL*
+*REDAN OCCIDENTE*
+
+*FECHA* : ${dSismo.emision}
+*ZOEDAN* : Zulia.
+*MUNICIPIO* : Lagunillas.
+*LUGAR* : Sede Protección Civil Lagunillas.
+*PARROQUIA* : Paraute.
+*CUADRANTE DE PAZ #* : P-08
+
+*TIPO DE EVENTO*: Monitoreo Sismológico de la Sala Situacional del Municipio Lagunillas
+
+*INFORMACIÓN DEL SISMO:*
+*Fecha:* ${dSismo.fechaSismo}
+*Hora:* ${dSismo.hora} HLV
+*Magnitud:* ${dSismo.mag} Mw
+*Epicentro:*
+    *Latitud:* ${dSismo.lat}°
+    *Longitud:* ${dSismo.lon}°
+    *Localizado a:* ${dSismo.loc}, a ${dSismo.dist} km al ${dSismo.rumbo} de Ciudad Ojeda.
+*Profundidad:* ${dSismo.prof} km
+
+*FUENTE:* FUNVISIS
+*ESTATUS:* En Desarrollo.
+
+*REPORTA:*
+Funcionario TSU Andres Romero
+
+*DIRECTOR MUNICIPAL:*
+CPC II Ldo. Fabio Berni
+
+*¡Solo Queremos Salvar Vidas!*`;
+  navigator.clipboard.writeText(t)
+    .then(() => mostrarToast('Reporte SNGR copiado al portapapeles.', 'ok'));
+}
+
+/* ══════════════════════════════════════════
+   PDF
+══════════════════════════════════════════ */
+function generarInformePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const h   = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+  doc.setFontSize(14);
+  doc.text("SALA SITUACIONAL — PC LAGUNILLAS", 105, 15, { align: "center" });
+  doc.setFontSize(10);
+  doc.text("MONITOREO SÍSMICO — HISTORIAL CRONOLÓGICO", 105, 22, { align: "center" });
+
+  if (h.length > 0) {
+    doc.autoTable({
+      startY: 30,
+      head: [['Fecha / Hora', 'Localización', 'Mw']],
+      body: h.map(e => [
+        `${e.fechaSismo}  ${e.hora}`,
+        `${e.loc}. A ${e.dist} km al ${e.rumbo}`,
+        e.mag
+      ]),
+      headStyles: { fillColor: [0, 43, 85] },
+      alternateRowStyles: { fillColor: [244, 246, 249] }
+    });
+  } else {
+    doc.text("Sin datos registrados.", 14, 40);
+  }
+  doc.save('Historial_Sismico_PC_Lagunillas.pdf');
+}
+
+/* ══════════════════════════════════════════
+   CARGA DESDE API — sismosve.rafnixg.dev
+══════════════════════════════════════════ */
+const SISMOS_TARGET = 'https://sismosve.rafnixg.dev/api/sismos';
+
+// Proxies con CORS abierto — se intentan en orden hasta que uno funcione
+const CORS_PROXIES = [
+  url => `http://localhost:3000/proxy/sismos`,           // local dev (server.js)
+  url => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+  url => `https://jsonp.afeld.me/?url=${encodeURIComponent(url)}`,
+];
+
+async function cargarDesdeAPI(autoAnalizar = true) {
+  const btn      = document.getElementById('btn-api-load');
+  const statusEl = document.getElementById('api-status');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando...'; }
+  if (statusEl) { statusEl.textContent = 'Conectando...'; statusEl.style.color='#616161'; statusEl.style.display='block'; }
+
+  let json = null;
+  let lastErr = '';
+
+  for (const makeUrl of CORS_PROXIES) {
+    try {
+      const proxyUrl = makeUrl(SISMOS_TARGET);
+      const res = await fetch(proxyUrl, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const raw = await res.json();
+      // codetabs devuelve el JSON directo; si viene como string en .contents (allorigins), parsear
+      json = typeof raw === 'string' ? JSON.parse(raw) : (raw.contents ? JSON.parse(raw.contents) : raw);
+      if (json) break;
+    } catch (e) {
+      lastErr = e.message;
+      continue;
+    }
+  }
+
+  if (!json) {
+    const msg = 'Sin conexión a la API (' + lastErr + ')';
+    mostrarToast(msg, 'warning');
+    if (statusEl) { statusEl.textContent = '✗ ' + msg; statusEl.style.color = '#c50f1f'; }
+    if (btn) { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-satellite-dish"></i> CARGAR ÚLTIMO SISMO (API)'; }
+    return;
+  }
+
+  try {
+    // Estructura: { type:"sismos", features:[{ geometry:{coordinates:[lon,lat]}, properties:{value,lat,long,depth,addressFormatted,date,time} }] }
+    const features = (json.features || []).slice(0, 10);
+    if (!features.length) throw new Error('Sin registros en la API');
+
+    // Cargar historial existente para deduplicar por fecha+hora
+    const histActual = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const existKeys  = new Set(histActual.map(e => `${e.fechaSismo}_${e.hora}`));
+
+    const nuevos = [];
+
+    for (const feat of features) {
+      const p      = feat.properties || feat;
+      const magRaw = parseFloat(p.value || p.magnitud || 0);
+      const laRaw  = parseFloat(p.lat   || p.latitud  || feat.geometry?.coordinates?.[1] || 0);
+      const loRaw  = parseFloat(p.long  || p.longitud || feat.geometry?.coordinates?.[0] || 0);
+      const profRaw= parseFloat(p.depth || p.profundidad || 0);
+      const loc    = (p.addressFormatted || p.referencia || p.location || 'S/I').replace(/,$/, '');
+      const fecha  = (p.date || p.fecha || '').replace(/-/g, '/');
+      const hora   = p.time || p.hora || 'S/I';
+
+      if (isNaN(laRaw) || isNaN(loRaw) || laRaw === 0) continue;
+
+      const key = `${fecha}_${hora}`;
+      if (existKeys.has(key)) continue;  // ya registrado → saltar
+      existKeys.add(key); // marcar para no duplicar dentro del mismo batch
+
+      const distKm = map ? (map.distance([laRaw, loRaw], sedeCoord) / 1000).toFixed(1) : '?';
+      const rumbo  = calcularRumbo(laRaw, loRaw, sedeCoord[0], sedeCoord[1]);
+
+      nuevos.push({ emision: new Date().toLocaleDateString('es-ES'), fechaSismo: fecha, hora, mag: fNum(magRaw,2), lat: fNum(laRaw,3), lon: fNum(loRaw,3), prof: fNum(profRaw,1), dist: distKm, rumbo, loc });
+    }
+
+    // Cargar el más reciente al textarea siempre
+    const p0 = features[0].properties || features[0];
+    const txt = `Fecha: ${(p0.date||'').replace(/-/g,'/')}  Hora: ${p0.time||''} UTC\nMagnitud: ${p0.value||0}\nLatitud: ${p0.lat||0}  Longitud: ${p0.long||0}\nProfundidad: ${parseFloat(p0.depth||0)} Km\nLocalizado a ${p0.addressFormatted||''}`;
+    document.getElementById('txt').value = txt;
+
+    if (nuevos.length > 0) {
+      const histNuevo = [...nuevos, ...histActual].slice(0, 30);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(histNuevo));
+      renderHistorial();
+      refrescarDashboard();
+      cargarSismosPersistentes();
+      if (statusEl) { statusEl.textContent = `✓ ${nuevos.length} nuevo${nuevos.length>1?'s':''} agregado${nuevos.length>1?'s':''} · M${nuevos[0].mag} · ${nuevos[0].loc}`; statusEl.style.color='#107c10'; }
+      mostrarToast(`${nuevos.length} sismo${nuevos.length>1?'s':''} nuevo${nuevos.length>1?'s':''} registrado${nuevos.length>1?'s':''}`, 'ok');
+    } else {
+      // Sin sismos nuevos — igual re-render para garantizar que el historial se muestre
+      renderHistorial();
+      refrescarDashboard();
+      cargarSismosPersistentes();
+      if (statusEl) { statusEl.textContent = '✓ Historial al día · Sin sismos nuevos en los últimos 10'; statusEl.style.color='#107c10'; }
+      mostrarToast('Historial al día · Sin cambios', 'info');
+    }
+    if (statusEl) statusEl.style.display = 'block';
+    if (typeof iniciarCountdown === 'function') iniciarCountdown();
+
+  } catch (e) {
+    console.error('[API Sismos]', e);
+    mostrarToast('Error: ' + e.message, 'warning');
+    if (statusEl) { statusEl.textContent = '✗ Error: ' + e.message; statusEl.style.color='#c50f1f'; }
+  } finally {
+    // Siempre re-renderizar historial desde localStorage — nunca queda vacío
+    try { renderHistorial(); refrescarDashboard(); cargarSismosPersistentes(); } catch(_) {}
+    if (btn) { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-satellite-dish"></i> CARGAR ÚLTIMOS SISMOS (API)'; }
+  }
+}
+
+/* ── COUNTDOWN ── */
+const SYNC_INTERVAL = 5 * 60; // segundos
+let _nextSyncIn = SYNC_INTERVAL;
+
+function iniciarCountdown() {
+  _nextSyncIn = SYNC_INTERVAL;
+  const cdEl  = document.getElementById('api-countdown');
+  const numEl = document.getElementById('api-countdown-num');
+  if (cdEl) cdEl.style.display = 'block';
+
+  clearInterval(window._cdTimer);
+  window._cdTimer = setInterval(() => {
+    _nextSyncIn--;
+    if (_nextSyncIn <= 0) {
+      _nextSyncIn = SYNC_INTERVAL;
+      cargarDesdeAPI(false);
+    }
+    const m = String(Math.floor(_nextSyncIn / 60)).padStart(1,'0');
+    const s = String(_nextSyncIn % 60).padStart(2,'0');
+    if (numEl) {
+      numEl.textContent = `${m}:${s}`;
+      numEl.style.color = _nextSyncIn <= 30 ? '#f59e0b' : '#0078d4';
+    }
+  }, 1000);
+}
+
+/* ── INICIO ── */
+function limpiarDuplicadosLocalStorage() {
+  try {
+    const h    = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const seen = new Set();
+    const clean = h.filter(e => {
+      const k = `${e.fechaSismo}_${e.hora}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    if (clean.length !== h.length) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+      console.log(`[Sismos] Duplicados eliminados: ${h.length - clean.length}`);
+    }
+  } catch(_) {}
+}
+
+window.onload = async () => {
+  limpiarDuplicadosLocalStorage(); // limpia datos corruptos antes de renderizar
+  initMap();
+  await cargarDesdeAPI(true);
+  renderHistorial();
+  cargarSismosPersistentes();
+  iniciarCountdown();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,2112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SALA SITUACIONAL V36.1.8 - LAGUNILLAS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --azul: #0078d4;
+    --naranja: #0078d4;
+    --alcaldia: #0078d4;
+    --pcad: #107c10;
+    --prep: #c50f1f;
+    --onda: #0078d4;
+    --uv-bajo: #107c10;
+    --uv-moderado: #7a4f00;
+    --uv-alto: #bc4b09;
+    --uv-muyalto: #c50f1f;
+    --uv-extremo: #6b2d8b;
+  }
+
+  html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    flex-direction: row;
+    background: #1a1a1a;
+  }
+
+  /* ── PANEL LATERAL — Fluent UI 9 ── */
+  .panel {
+    width: 410px;
+    min-width: 410px;
+    background: #ffffff;
+    padding: 12px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.12);
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    transition: margin-left 0.3s ease;
+    scrollbar-width: thin;
+    scrollbar-color: #bfdbfe #f0f0f0;
+  }
+  .panel::-webkit-scrollbar { width: 5px; }
+  .panel::-webkit-scrollbar-thumb { background: #bfdbfe; border-radius: 4px; }
+  .panel.hidden { margin-left: -410px; }
+
+  /* ── HEADER — Fluent UI 9 ── */
+  header {
+    background: #0078d4;
+    color: white;
+    padding: 12px 14px;
+    text-align: center;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+  header h2 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+  header small { font-size: 10px; opacity: 0.85; letter-spacing: 0.3px; }
+
+  /* ── TURNO BADGE — Fluent ── */
+  .turno-badge {
+    background: #eff6ff;
+    color: #0078d4;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 6px;
+    border: 1px solid #bfdbfe;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── STATUS / SYNC — Fluent ── */
+  .status-sync {
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    padding: 5px 8px;
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #424242;
+    border: 1px solid #e0e0e0;
+    transition: all 0.4s ease;
+    letter-spacing: 0.3px;
+  }
+
+  #countdown-bar {
+    font-size: 9px;
+    text-align: center;
+    color: #555;
+    margin-bottom: 6px;
+    padding: 2px 0;
+    letter-spacing: 0.3px;
+    transition: color 0.4s;
+  }
+  #countdown-bar span { font-weight: bold; color: var(--azul); }
+
+  /* ── LABELS — Fluent ── */
+  label {
+    font-weight: 600;
+    font-size: 9px;
+    color: #616161;
+    display: block;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  /* ── INPUTS ── */
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    border: 1px solid #d1d1d1;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    margin-top: 2px;
+    box-sizing: border-box;
+    background: #fafafa;
+    transition: border-color 0.15s;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #0078d4; background: #fff; }
+
+  .actual {
+    background: #fff8ee !important;
+    border-color: var(--naranja) !important;
+    font-weight: bold;
+    color: #111 !important;
+    text-align: center;
+  }
+
+  @keyframes pulse-border {
+    0%   { box-shadow: 0 0 0 0 rgba(255,102,0,0.5); }
+    70%  { box-shadow: 0 0 0 4px rgba(255,102,0,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,102,0,0); }
+  }
+  .actual.refreshed { animation: pulse-border 0.8s ease; }
+
+  /* ── UV ── */
+  #uv_index.uv-bajo    { background: #e8f5e9 !important; border-color: var(--uv-bajo)    !important; color: #1b5e20 !important; }
+  #uv_index.uv-moderado{ background: #fffde7 !important; border-color: #f9a825           !important; color: #33691e !important; }
+  #uv_index.uv-alto    { background: #fff3e0 !important; border-color: var(--uv-alto)    !important; color: #e65100 !important; }
+  #uv_index.uv-muyalto { background: #fde8e8 !important; border-color: var(--uv-muyalto) !important; color: #b71c1c !important; }
+  #uv_index.uv-extremo { background: #f3e5f5 !important; border-color: var(--uv-extremo) !important; color: #4a148c !important; }
+
+  #uv-label-desc {
+    font-size: 9px; font-weight: bold; text-align: center;
+    margin-top: 1px; border-radius: 3px; padding: 1px 4px; display: none;
+  }
+
+  /* ── GRIDS ── */
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 8px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  /* ── SEPARADORES — Fluent ── */
+  .section-divider { border: none; border-top: 1px solid #e0e0e0; margin: 10px 0 6px; }
+  .section-title {
+    font-size: 9px; font-weight: 700; color: #0078d4;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px;
+  }
+
+  /* ── BOTONES — Fluent UI 9 ── */
+  .btn {
+    width: 100%; padding: 9px 12px; font-weight: 600; cursor: pointer;
+    border: none; border-radius: 4px; margin-top: 7px; text-transform: uppercase;
+    font-size: 10px; color: white; display: flex; align-items: center;
+    justify-content: center; gap: 6px; text-decoration: none;
+    transition: opacity 0.15s; letter-spacing: 0.3px;
+  }
+  .btn:hover  { opacity: 0.88; }
+  .btn:active { opacity: 0.75; }
+
+  .btn-pcad     { background: #107c10; }
+  .btn-alcaldia { background: #0078d4; }
+  .btn-prep     { background: #c50f1f; }
+  .btn-red      { background: #c50f1f; opacity:0.35; pointer-events:none; }
+  .btn-red.activo {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    animation: pulse-red 1.2s infinite;
+    box-shadow: 0 0 0 0 rgba(197,15,31,0.5);
+  }
+  .btn-captura  { background: #5c2d91; border: none; margin-top: 4px; }
+  .btn-sync     { background: #424242; margin-top: 4px; }
+  .btn-obs      { background: #0078d4; margin-top: 10px; border: none; }
+  .btn-link {
+    background: #0078d4; font-size: 9px; padding: 8px; border-radius: 4px;
+    color: white; text-align: center; font-weight: 600; text-decoration: none;
+    display: block; transition: opacity 0.15s; letter-spacing: 0.3px;
+  }
+  .btn-link:hover { opacity: 0.88; }
+
+  /* Botón reset cielo automático */
+  #btn-cielo-auto {
+    display: none; background: none; border: 1px solid var(--azul);
+    color: var(--azul); font-size: 8px; font-weight: bold; padding: 1px 5px;
+    border-radius: 3px; cursor: pointer; vertical-align: middle; margin-left: 4px;
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  #btn-cielo-auto:hover { background: var(--azul); color: white; }
+
+  /* ── TENDENCIAS ── */
+  .tendencia { font-size: 11px; margin-left: 2px; font-weight: bold; vertical-align: middle; }
+
+  /* ── HISTORIAL ── */
+  .historial-box {
+    margin-top: 10px; border: 1px solid #ddd; border-radius: 6px;
+    background: white; padding: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .historial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .btn-delete {
+    background: #e53935; color: white; border: none; padding: 4px 8px;
+    border-radius: 4px; font-size: 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 4px; transition: filter 0.2s;
+  }
+  .btn-delete:hover { filter: brightness(1.1); }
+  .historial-table { width: 100%; font-size: 9px; border-collapse: collapse; }
+  .historial-table th {
+    border-bottom: 2px solid #e0e0e0; text-align: left; padding: 4px 3px;
+    color: #0078d4; font-weight: 700; text-transform: uppercase;
+    font-size: 8px; letter-spacing: 0.3px;
+  }
+  .historial-table td { padding: 4px 3px; border-bottom: 1px dotted #eee; color: #333; }
+  .historial-table tr:hover td { background: #f5f5f5; }
+
+  /* ── MODALES ── */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75); display: none; justify-content: center;
+    align-items: center; z-index: 3000; padding: 20px; box-sizing: border-box;
+    backdrop-filter: blur(2px);
+  }
+  .modal-content {
+    background: white; padding: 20px; border-radius: 10px; width: 100%;
+    max-width: 560px; display: flex; flex-direction: column;
+    max-height: 90vh; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .modal-header h3 { margin: 0; font-size: 15px; color: #0078d4; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; font-size: 18px; cursor: pointer;
+    color: #888; padding: 0 4px; transition: color 0.2s;
+  }
+  .modal-close:hover { color: #333; }
+
+  #preview-area {
+    background: #f0f4f7; border: 1px solid #c5cdd6; border-radius: 6px;
+    padding: 14px; font-family: 'Courier New', monospace; font-size: 11px;
+    white-space: pre-wrap; overflow-y: auto; flex-grow: 1; color: #111;
+    margin-bottom: 12px; line-height: 1.45; min-height: 120px;
+  }
+
+  /* ── MODAL REPORTE (mapa + texto + botones compartir) ── */
+  #modalReporte .modal-content { max-width: 620px; }
+  #reporte-mapa-img {
+    width: 220px; height: 220px;
+    object-fit: cover;
+    border-radius: 8px; margin: 0 auto 10px;
+    border: 1px solid #ddd; display: none;
+  }
+  #reporte-mapa-loading {
+    width: 100%; height: 60px; background: #e8f0fe; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #555; gap: 8px; margin-bottom: 10px;
+  }
+  .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .btn-whatsapp { background: #25D366; }
+  .btn-download { background: #1565c0; }
+
+  /* ── ONDA TROPICAL — Fluent ── */
+  .onda-box {
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    padding: 10px; border-radius: 6px; margin-top: 8px;
+  }
+  .onda-box label { color: #0078d4; }
+
+  /* ── MAPA ── */
+  #map-container { flex-grow: 1; position: relative; height: 100%; background: #000; overflow: hidden; }
+  #windy-frame { width: 100%; height: 100%; border: none; }
+
+  #btn-restore {
+    position: absolute; left: 15px; top: 15px; z-index: 2000;
+    background: #0078d4; display: none; padding: 10px 12px;
+    border-radius: 4px; color: white; border: none; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: opacity 0.15s;
+  }
+  #btn-restore:hover { opacity: 0.88; }
+
+  /* ── TOAST ── */
+  #toast-container {
+    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .toast {
+    padding: 10px 16px; border-radius: 6px; font-size: 12px; font-weight: bold;
+    color: white; box-shadow: 0 3px 12px rgba(0,0,0,0.3); opacity: 0;
+    transform: translateX(30px);
+    animation: toast-in 0.3s forwards, toast-out 0.3s 2.7s forwards;
+    max-width: 280px;
+  }
+  .toast.ok      { background: #2e7d32; }
+  .toast.info    { background: #1565c0; }
+  .toast.warning { background: #e65100; }
+  @keyframes toast-in  { to { opacity: 1; transform: translateX(0); } }
+  @keyframes toast-out { to { opacity: 0; transform: translateX(30px); } }
+
+  /* ── KPI DASHBOARD — Fluent UI 9 ── */
+  #modalKPI .modal-content { max-width: 780px; }
+  .kpi-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .kpi-card {
+    background: #f0f6ff;
+    color: #242424;
+    border-radius: 6px;
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid #bfdbfe;
+  }
+  .kpi-card.alerta { background: #f5eeff; border-color: #c8a8e8; }
+  .kpi-card.critico { background: #fef2f2; border-color: #fecaca; }
+  .kpi-val  { font-size: 20px; font-weight: 700; color: #0078d4; display: block; line-height: 1.2; }
+  .kpi-card.alerta .kpi-val  { color: #6b2d8b; }
+  .kpi-card.critico .kpi-val { color: #c50f1f; }
+  .kpi-lbl  { font-size: 8px; text-transform: uppercase; letter-spacing: 0.6px; color: #616161; display: block; margin-top: 3px; }
+  .kpi-sub  { font-size: 8px; color: #9e9e9e; display: block; margin-top: 2px; }
+  .kpi-chart-box {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+  }
+  .kpi-chart-box h4 {
+    margin: 0 0 8px;
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #555;
+    letter-spacing: 0.5px;
+  }
+  .kpi-bottom { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; margin-top: 10px; }
+  .kpi-scroll { overflow-y: auto; flex-grow: 1; padding-right: 2px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .panel { width: 100%; min-width: 100%; height: 65%; border-right: none; order: 2; }
+    #map-container { height: 35%; width: 100%; order: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- Overlay + popup modo captura -->
+<div id="captura-helper" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.35);justify-content:flex-start;align-items:flex-start;padding:24px;">
+  <div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.22);padding:22px 24px;width:320px;font-family:'Segoe UI',Arial,sans-serif;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="fa-solid fa-scissors" style="color:#0078d4;font-size:15px;"></i>
+      </div>
+      <span style="font-size:1rem;font-weight:700;color:#242424;">Modo Captura</span>
+    </div>
+
+    <!-- Instrucciones -->
+    <p style="margin:0 0 8px;font-size:13px;color:#242424;line-height:1.6;font-weight:400;">
+      Realice la captura del área requerida:
+    </p>
+    <div style="background:#f5f5f5;border-radius:6px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:#424242;line-height:1.7;">
+      1. Presione <code style="background:#e8e8e8;padding:2px 6px;border-radius:3px;font-weight:700;">Win + Shift + S</code><br>
+      2. Seleccione el área del mapa<br>
+      3. Presione <b>Continuar</b>
+    </div>
+
+    <!-- Botones -->
+    <div style="display:flex;gap:10px;">
+      <button onclick="cancelarCaptura()"
+        style="flex:1;padding:10px;font-size:13px;font-weight:600;color:#424242;background:#fff;border:1px solid #d1d1d1;border-radius:5px;cursor:pointer;">
+        Cancelar
+      </button>
+      <button onclick="continuarCaptura()"
+        style="flex:1;padding:10px;font-size:13px;font-weight:700;color:#fff;background:#0078d4;border:none;border-radius:5px;cursor:pointer;">
+        ✓ Continuar
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<button id="btn-restore" onclick="togglePanel()" title="Mostrar panel">
+  <i class="fa-solid fa-chevron-right"></i>
+</button>
+
+<!-- Modal: Revisar Observaciones -->
+<div id="modalObs" class="modal-overlay" onclick="cerrarModalOverlay(event,'modalObs')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-pen-to-square"></i> REVISAR OBSERVACIONES</h3>
+      <button class="modal-close" onclick="cerrarModal('modalObs')" title="Cerrar">&times;</button>
+    </div>
+    <textarea id="modal-textarea" style="height:160px; font-size:13px; border:1.5px solid #ccc; padding:10px; line-height:1.5; resize:vertical; background:#fafafa; border-radius:5px;"></textarea>
+    <button class="btn btn-pcad" style="margin-top:10px;" onclick="guardarObservaciones()">
+      <i class="fa-solid fa-floppy-disk"></i> CONFIRMAR Y GUARDAR
+    </button>
+    <button class="btn" style="background:#78909c; margin-top:6px;" onclick="resetObsAuto()">
+      <i class="fa-solid fa-rotate-left"></i> RESTAURAR TEXTO AUTOMÁTICO
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Vista Previa del Reporte -->
+<div id="modalReporte" class="modal-overlay" onclick="cerrarModalOverlay(event,'modalReporte')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fa-regular fa-eye"></i> VISTA PREVIA DEL REPORTE</h3>
+      <button class="modal-close" onclick="cerrarModal('modalReporte')" title="Cerrar">&times;</button>
+    </div>
+    <div id="preview-area"></div>
+    <button class="btn btn-pcad" onclick="copiarYGuardar()">
+      <i class="fa-solid fa-clipboard-check"></i> COPIAR Y GUARDAR EN HISTORIAL
+    </button>
+    <button class="btn" style="background:#546e7a;margin-top:6px;" onclick="cerrarModal('modalReporte')">
+      <i class="fa-solid fa-arrow-left"></i> VOLVER Y EDITAR
+    </button>
+  </div>
+</div>
+
+<div class="panel" id="sidebar">
+
+
+  <div id="turno-info" class="turno-badge">DETERMINANDO TURNO...</div>
+  <div class="status-sync" id="sync-label">ESTADO: INICIANDO...</div>
+  <div id="countdown-bar">Próxima actualización en <span id="countdown-num">—</span></div>
+
+  <button class="btn btn-captura" onclick="prepararCaptura()">
+    <i class="fa-solid fa-camera"></i> MODO CAPTURA (MAPA)
+  </button>
+  <button class="btn btn-sync" onclick="sincronizar()">
+    <i class="fa-solid fa-rotate"></i> ACTUALIZAR DATOS AHORA
+  </button>
+
+  <hr class="section-divider">
+  <div class="section-title"><i class="fa-solid fa-cloud-sun"></i> Condiciones Atmosféricas</div>
+
+  <div class="grid-2">
+    <div>
+      <label>Condición del Cielo: <button id="btn-cielo-auto" onclick="resetCieloAuto()" title="Volver a detección automática">↺ auto</button></label>
+      <select id="cielo" class="actual">
+        <option value="Despejado (Cielo Limpio)">Despejado (Cielo Limpio)</option>
+        <option value="Mayormente Soleado">Mayormente Soleado</option>
+        <option value="Parcialmente Nublado">Parcialmente Nublado</option>
+        <option value="Nublado (Cubierto)">Nublado (Cubierto)</option>
+        <option value="Nubosidad Variable">Nubosidad Variable</option>
+        <option value="Lloviznas Leves">Lloviznas Leves</option>
+        <option value="Lluvia Moderada">Lluvia Moderada</option>
+        <option value="Chubascos Dispersos">Chubascos Dispersos</option>
+        <option value="Inestabilidad (Tormentas)">Inestabilidad (Tormentas)</option>
+      </select>
+    </div>
+    <div>
+      <label>Índice UV: <span id="uv-tend" class="tendencia"></span></label>
+      <input type="text" id="uv_index" class="actual" readonly placeholder="—">
+      <div id="uv-label-desc"></div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div><label>T. Mín</label><input type="text" id="t_min" readonly placeholder="—"></div>
+    <div><label>T. Actual <span id="t-tend" class="tendencia"></span></label><input type="text" id="t_now" class="actual" readonly placeholder="—"></div>
+    <div><label>T. Máx</label><input type="text" id="t_max" readonly placeholder="—"></div>
+  </div>
+
+  <div class="grid-3" style="margin-top:8px;">
+    <div><label>Sens. Mín</label><input type="text" id="s_min" readonly placeholder="—"></div>
+    <div><label>Sens. Actual <span id="s-tend" class="tendencia"></span></label><input type="text" id="s_now" class="actual" readonly placeholder="—"></div>
+    <div><label>Sens. Máx</label><input type="text" id="s_max" readonly placeholder="—"></div>
+  </div>
+
+  <div class="grid-3" style="margin-top:8px;">
+    <div><label>H. Mín</label><input type="text" id="h_min" readonly placeholder="—"></div>
+    <div><label>H. Actual <span id="h-tend" class="tendencia"></span></label><input type="text" id="h_now" class="actual" readonly placeholder="—"></div>
+    <div><label>H. Máx</label><input type="text" id="h_max" readonly placeholder="—"></div>
+  </div>
+
+  <div class="grid-3" style="margin-top:8px;">
+    <div><label>Viento (km/h)</label><input type="text" id="v_vel" class="actual" readonly placeholder="—"></div>
+    <div><label>Ráfagas (km/h)</label><input type="text" id="v_max" class="actual" readonly placeholder="—"></div>
+    <div><label>Dirección</label><input type="text" id="v_dir" class="actual" readonly placeholder="—"></div>
+  </div>
+
+  <div class="grid-2" style="margin-top:8px;">
+    <div><label>Prob. Lluvia</label><input type="text" id="lluvia_p" class="actual" readonly placeholder="—"></div>
+    <div><label>Visibilidad</label><input type="text" id="visib" class="actual" readonly placeholder="—"></div>
+  </div>
+
+  <button class="btn btn-obs" id="btn-obs-trigger" onclick="abrirModal('modalObs')">
+    <i class="fa-solid fa-comment-dots"></i> REDACTAR OBSERVACIONES
+  </button>
+  <textarea id="obs_final" style="display:none;"></textarea>
+
+  <hr class="section-divider">
+
+  <div class="onda-box">
+    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--onda); margin-top:0;">
+      <input type="checkbox" id="activar_onda" style="width:auto; margin:0;" onchange="window.toggleOndaFields(this.checked)">
+      <span style="font-weight:bold; font-size:10px; text-transform:uppercase; letter-spacing:0.4px;">
+        <i class="fa-solid fa-water"></i> INCLUIR ONDAS TROPICALES
+      </span>
+    </label>
+
+    <div id="onda-fields" style="opacity:0.4;pointer-events:none;transition:opacity 0.2s;">
+    <div style="border-bottom: 1px dashed var(--onda); margin-top: 5px; padding-bottom: 5px;">
+      <div style="font-size: 9px; font-weight: bold; color: var(--onda); text-transform: uppercase;">Onda Tropical A</div>
+      <div class="grid-2">
+        <div><label>Nro. OT (A)</label><input type="number" id="onda_nro" placeholder="Ej: 1"></div>
+        <div><label>V. Desplaz. (A)</label><input type="text" id="onda_vel" placeholder="Ej: 15 km/h"></div>
+      </div>
+      <div class="grid-2">
+        <div><label>Longitud (W) (A)</label><input type="text" id="onda_loc" placeholder="Ej: 64°W"></div>
+        <div><label>Latitud (N) (A)</label><input type="text" id="onda_lat" placeholder="Ej: 19°N"></div>
+      </div>
+      <label>Estatus / Trayectoria (A):</label>
+      <input type="text" id="onda_desc" placeholder="Nororiente Venezolano">
+    </div>
+
+    <div style="margin-top: 8px;">
+      <div style="font-size: 9px; font-weight: bold; color: var(--onda); text-transform: uppercase;">Onda Tropical B</div>
+      <div class="grid-2">
+        <div><label>Nro. OT (B)</label><input type="number" id="onda_nro_b" placeholder="Ej: 2"></div>
+        <div><label>V. Desplaz. (B)</label><input type="text" id="onda_vel_b" placeholder="Ej: 20 km/h"></div>
+      </div>
+      <div class="grid-2">
+        <div><label>Longitud (W) (B)</label><input type="text" id="onda_loc_b" placeholder="Ej: 45°W"></div>
+        <div><label>Latitud (N) (B)</label><input type="text" id="onda_lat_b" placeholder="Ej: 12°N"></div>
+      </div>
+      <label>Estatus / Trayectoria (B):</label>
+      <input type="text" id="onda_desc_b" placeholder="Aproximándose al Esequibo">
+    </div>
+    </div><!-- /onda-fields -->
+  </div>
+
+  <hr class="section-divider">
+  <div class="section-title"><i class="fa-solid fa-file-lines"></i> Generar Reporte</div>
+
+  <!-- Config API WhatsApp (plegable) -->
+  <div style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:6px;margin-bottom:6px;overflow:hidden;">
+    <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.chev').style.transform=this.nextElementSibling.style.display==='block'?'rotate(180deg)':'rotate(0deg)'"
+      style="width:100%;display:flex;align-items:center;gap:6px;padding:7px 10px;background:none;border:none;cursor:pointer;font-size:10px;font-weight:700;color:#0078d4;text-align:left;text-transform:uppercase;letter-spacing:0.4px;">
+      <i class="fa-brands fa-whatsapp"></i> Config WhatsApp API
+      <i class="fa-solid fa-chevron-down chev" style="margin-left:auto;font-size:9px;transition:transform 0.2s;"></i>
+    </button>
+    <div style="display:none;padding:10px;border-top:1px solid #e0e0e0;">
+      <label>ImgBB API Key <a href="https://api.imgbb.com" target="_blank" style="font-size:8px;color:#0078d4;">(obtener gratis)</a></label>
+      <input type="text" id="cfg-imgbb-key" placeholder="abc123..." style="margin-top:2px;">
+
+      <label style="margin-top:6px;">Teléfono destino <span style="font-weight:400;">(+58...)</span></label>
+      <input type="text" id="cfg-wa-phone" placeholder="+584141234567" style="margin-top:2px;">
+
+      <label style="margin-top:6px;">CallMeBot API Key <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" style="font-size:8px;color:#0078d4;">(cómo obtener)</a></label>
+      <input type="text" id="cfg-wa-key" placeholder="123456" style="margin-top:2px;">
+
+      <button onclick="guardarConfigWA()" class="btn btn-blue" style="margin-top:8px;padding:7px;">
+        <i class="fa-solid fa-floppy-disk"></i> Guardar configuración
+      </button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;">
+    <button class="btn btn-pcad" onclick="generarReporte()" style="margin-top:0;">
+      <i class="fa-solid fa-shield"></i> REPORTE PCAD
+    </button>
+    <button id="btn-alerta-inmediata" class="btn btn-red" onclick="generarAlertaInmediata()" style="margin-top:0;">
+      <i class="fa-solid fa-bell"></i> ALERTA INMEDIATA
+    </button>
+  </div>
+
+  <div class="historial-box">
+    <div class="historial-header">
+      <label style="color:var(--azul); font-size:9px; font-weight:bold; margin:0;">
+        <i class="fa-solid fa-clock-rotate-left"></i> HISTORIAL PCAD (ÚLTIMOS 20)
+      </label>
+      <div style="display:flex; gap:5px;">
+        <button onclick="abrirKPI()" style="background:#0088cc; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:4px; transition:filter 0.2s;">
+          <i class="fa-solid fa-chart-line"></i> KPI
+        </button>
+        <button class="btn-delete" onclick="limpiarHistorial()">
+          <i class="fa-solid fa-trash-can"></i> BORRAR
+        </button>
+      </div>
+    </div>
+    <table class="historial-table">
+      <thead>
+        <tr><th>Fecha/H</th><th>Temp.</th><th>Sens.</th><th>Hum.</th><th style="text-align:center;width:24px;"></th></tr>
+      </thead>
+      <tbody id="historial-body"></tbody>
+    </table>
+    <div id="hist-pagination" style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px 2px;font-size:10px;color:#616161;"></div>
+  </div>
+
+  <hr class="section-divider">
+  <div class="section-title"><i class="fa-solid fa-link"></i> Fuentes de Referencia</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:4px;">
+    <a href="http://www.inameh.gob.ve" target="_blank" class="btn-link">
+      <i class="fa-solid fa-cloud"></i> INAMEH
+    </a>
+    <a href="https://www.meteoblue.com/es/tiempo/semana/ciudad-ojeda_venezuela_3644754" target="_blank" class="btn-link">
+      <i class="fa-solid fa-temperature-half"></i> METEOBLUE
+    </a>
+    <a href="https://www.windy.com/10.190/-71.310?10.190,-71.310,11" target="_blank" class="btn-link">
+      <i class="fa-solid fa-wind"></i> WINDY
+    </a>
+    <a href="https://www.meteored.com.ve/tiempo-en_Ciudad+Ojeda-America+Sur-Venezuela-Zulia--1-24835.html" target="_blank" class="btn-link">
+      <i class="fa-solid fa-satellite-dish"></i> METEORED
+    </a>
+  </div>
+
+<!-- Modal Confirmar Borrar Historial -->
+<div id="modalConfirmBorrar" class="modal-overlay" onclick="cerrarModalOverlay(event,'modalConfirmBorrar')">
+  <div class="modal-content" style="max-width:380px;">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-trash-can" style="color:#e53935;"></i> BORRAR HISTORIAL</h3>
+      <button class="modal-close" onclick="cerrarModal('modalConfirmBorrar')">&times;</button>
+    </div>
+    <p style="font-size:13px; color:#444; margin:0 0 6px; line-height:1.6;">
+      ¿Desea borrar <strong>todo el historial</strong> de reportes PCAD?
+    </p>
+    <p style="font-size:11px; color:#888; margin:0 0 18px;">
+      Esta acción no se puede deshacer.
+    </p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <button class="btn" style="background:#e53935;" onclick="confirmarBorrarHistorial()">
+        <i class="fa-solid fa-trash-can"></i> SÍ, BORRAR
+      </button>
+      <button class="btn" style="background:#607d8b;" onclick="cerrarModal('modalConfirmBorrar')">
+        <i class="fa-solid fa-xmark"></i> CANCELAR
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal KPI -->
+<div id="modalKPI" class="modal-overlay" onclick="cerrarModalOverlay(event,'modalKPI')">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-chart-line"></i> KPI — HISTORIAL PCAD</h3>
+      <button class="modal-close" onclick="cerrarModal('modalKPI')">&times;</button>
+    </div>
+    <div class="kpi-scroll">
+      <div class="kpi-cards" id="kpi-cards"></div>
+      <div class="kpi-chart-box">
+        <h4><i class="fa-solid fa-temperature-half"></i> Temperatura y Sensación Térmica (°C)</h4>
+        <canvas id="kpi-chart-temp" height="110"></canvas>
+      </div>
+      <div class="kpi-bottom">
+        <div class="kpi-chart-box">
+          <h4><i class="fa-solid fa-droplet"></i> Humedad Relativa (%)</h4>
+          <canvas id="kpi-chart-hum" height="130"></canvas>
+        </div>
+        <div class="kpi-chart-box">
+          <h4><i class="fa-solid fa-clock"></i> Reportes por Turno</h4>
+          <canvas id="kpi-chart-turno" height="130"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><div id="map-container">
+  <iframe
+    id="windy-frame"
+    src="https://embed.windy.com/embed2.html?lat=10.195&lon=-71.312&detailLat=10.195&detailLon=-71.312&width=650&height=450&zoom=9&level=surface&overlay=radar&product=radar&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=false&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
+    allowfullscreen>
+  </iframe>
+</div>
+
+<script>
+/* ─── Configuración de personal ─── */
+const CONFIG = {
+  funcionario: "Funcionario TSU Andres Romero",
+  director:    "CPC II Ldo. Fabio Berni"
+};
+
+/* ─── Estado Global ─── */
+let ultimaAlertaEstado = false;
+let cieloManual        = false;
+let obsManual          = false;
+let reintentos         = 0;
+let audioCtx           = null;
+let ultimaSyncExitosa  = null;
+let syncTimeout        = null;
+let _reporteTexto      = "";
+let _canvasMapa        = null;
+let _esAlertaInmediata = false;
+
+const INTERVALO_SEG = 90;
+let countdownTimer  = null;
+let segsRestantes   = INTERVALO_SEG;
+
+/* ─── PANEL ─── */
+function togglePanel() {
+  document.getElementById('sidebar').classList.remove('hidden');
+  document.getElementById('btn-restore').style.display = 'none';
+}
+function prepararCaptura() {
+  document.getElementById('sidebar').classList.add('hidden');
+  document.getElementById('btn-restore').style.display = 'block';
+}
+
+/* ─── MODALES ─── */
+function abrirModal(id)  { document.getElementById(id).style.display = 'flex'; }
+function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+function cerrarModalOverlay(e, id) {
+  if (e.target === document.getElementById(id)) cerrarModal(id);
+}
+
+/* ─── OBSERVACIONES ─── */
+function guardarObservaciones() {
+  document.getElementById('obs_final').value =
+    document.getElementById('modal-textarea').value;
+  obsManual = true;
+  const btn = document.getElementById('btn-obs-trigger');
+  btn.style.background = "#2e7d32";
+  btn.innerHTML = '<i class="fa-solid fa-check"></i> OBSERVACIONES GUARDADAS';
+  cerrarModal('modalObs');
+  mostrarToast('Observaciones guardadas correctamente.', 'ok');
+}
+
+function resetObsAuto() {
+  obsManual = false;
+  document.getElementById('obs_final').value = '';
+  document.getElementById('modal-textarea').value = '';
+  const btn = document.getElementById('btn-obs-trigger');
+  btn.style.background = '';
+  btn.innerHTML = '<i class="fa-solid fa-comment-dots"></i> REDACTAR OBSERVACIONES';
+  cerrarModal('modalObs');
+  mostrarToast('Texto automático se restaurará en la próxima sincronización.', 'info');
+}
+
+/* ─── TOAST ─── */
+function mostrarToast(msg, tipo = 'info') {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${tipo}`;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+/* ─── ALERTA SONORA ─── */
+function emitirAlertaSonora() {
+  try {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const playBeep = (freq, start) => {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime + start);
+      osc.stop(audioCtx.currentTime + start + 0.25);
+    };
+    playBeep(880, 0); playBeep(880, 0.3); playBeep(1100, 0.6);
+  } catch(e) { /* sin soporte audio */ }
+}
+
+/* ─── TENDENCIAS ─── */
+function obtenerFlecha(actual, historialStr, idTend) {
+  if (!historialStr) return;
+  const histVal = parseFloat(historialStr.replace(/[^\d.-]/g, ''));
+  if (isNaN(histVal)) return;
+  const el = document.getElementById(idTend);
+  if (actual > histVal)      { el.innerHTML = '▲'; el.style.color = '#c62828'; }
+  else if (actual < histVal) { el.innerHTML = '▼'; el.style.color = '#1565c0'; }
+  else                       { el.innerHTML = '='; el.style.color = '#757575'; }
+}
+
+/* ─── CLASIFICACIÓN UV ─── */
+function aplicarClasificacionUV(uvVal) {
+  const input = document.getElementById('uv_index');
+  const desc  = document.getElementById('uv-label-desc');
+  input.classList.remove('uv-bajo','uv-moderado','uv-alto','uv-muyalto','uv-extremo');
+
+  let clase, texto, color;
+  if      (uvVal < 3)  { clase = 'uv-bajo';    texto = 'BAJO';     color = '#1b5e20'; }
+  else if (uvVal < 6)  { clase = 'uv-moderado'; texto = 'MODERADO'; color = '#33691e'; }
+  else if (uvVal < 8)  { clase = 'uv-alto';     texto = 'ALTO';     color = '#e65100'; }
+  else if (uvVal < 11) { clase = 'uv-muyalto';  texto = 'MUY ALTO'; color = '#b71c1c'; }
+  else                 { clase = 'uv-extremo';   texto = 'EXTREMO';  color = '#4a148c'; }
+
+  input.classList.add(clase);
+  desc.textContent = texto;
+  desc.style.display = 'block';
+  desc.style.color = color;
+}
+
+/* ─── PULSO en campo al actualizar ─── */
+function pulsarCampo(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('refreshed');
+  setTimeout(() => el.classList.add('refreshed'), 0);
+}
+
+/* ─── PROXY CORS con fallback y timeout ─── */
+function fetchConTimeout(url, ms = 5000) {
+  const ctrl = new AbortController();
+  const id   = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id));
+}
+
+async function fetchHtmlConProxy(url) {
+  try {
+    const res = await fetchConTimeout(
+      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.contents) return data.contents;
+    }
+  } catch(e) { /* continuar con proxy alternativo */ }
+
+  try {
+    const res = await fetchConTimeout(
+      `https://corsproxy.io/?${encodeURIComponent(url)}`
+    );
+    if (res.ok) return await res.text();
+  } catch(e) { /* ambos proxies fallaron */ }
+
+  throw new Error("Proxies CORS no disponibles");
+}
+
+/* ─── ONDA TROPICAL (INAMEH scraping) ─── */
+async function obtenerOndasTropicales() {
+  let cieloConsenso = "";
+  try {
+    const html = await fetchHtmlConProxy('http://www.inameh.gob.ve/web/');
+
+    const nroMatch  = html.match(/Onda\s+Tropical\s+Nro\.\s*(\d+)/i);
+    const longMatch = html.match(/(\d+°W)/i);
+    const latMatch  = html.match(/(\d+°N)/i);
+
+    if (nroMatch) {
+      document.getElementById('onda_nro').value       = nroMatch[1];
+      document.getElementById('activar_onda').checked = true;
+    }
+    if (longMatch) document.getElementById('onda_loc').value = longMatch[1];
+    if (latMatch)  document.getElementById('onda_lat').value = latMatch[1];
+
+    const lh = html.toLowerCase();
+    if (lh.includes("despejado") || lh.includes("buen tiempo") || lh.includes("poca nubosidad"))
+      cieloConsenso = "Despejado (Cielo Limpio)";
+    else if (lh.includes("parcialmente nublado"))
+      cieloConsenso = "Parcialmente Nublado";
+    else if (lh.includes("nublado") || lh.includes("abundante nubosidad"))
+      cieloConsenso = "Nublado (Cubierto)";
+    else if (lh.includes("lluvias") || lh.includes("precipitaciones") || lh.includes("chubascos"))
+      cieloConsenso = "Lluvia Moderada";
+  } catch(e) {
+    console.warn("Sincronización extendida INAMEH no disponible.");
+  }
+  return cieloConsenso;
+}
+
+/* ─── CONTADOR REGRESIVO ─── */
+function iniciarCountdown(totalSeg) {
+  segsRestantes = totalSeg ?? INTERVALO_SEG;
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    segsRestantes--;
+    const m = Math.floor(segsRestantes / 60);
+    const s = segsRestantes % 60;
+    document.getElementById('countdown-num').textContent =
+      segsRestantes > 0
+        ? (m > 0 ? `${m}m ${String(s).padStart(2,'0')}s` : `${s}s`)
+        : '—';
+
+    const datosViejos = ultimaSyncExitosa != null &&
+      (Date.now() - ultimaSyncExitosa > INTERVALO_SEG * 3 * 1000);
+    document.getElementById('countdown-bar').style.color = datosViejos ? '#c62828' : '#555';
+
+    if (segsRestantes <= 0) clearInterval(countdownTimer);
+  }, 1000);
+}
+
+/* ─── Programar siguiente sync ─── */
+function programarProximaSync(delaySeg) {
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(sincronizar, delaySeg * 1000);
+  iniciarCountdown(delaySeg);
+}
+
+/* ─── SINCRONIZAR ─── */
+async function sincronizar() {
+  clearTimeout(syncTimeout);
+  const syncLabel = document.getElementById('sync-label');
+  syncLabel.style.background = "#78909c";
+  syncLabel.style.color      = "white";
+  syncLabel.textContent      = "🔄 ACTUALIZANDO DATOS...";
+
+  const ahora = new Date();
+  const hora  = ahora.getHours();
+
+  let turnoTexto;
+  if      (hora >= 5  && hora < 12) turnoTexto = "PRIMER REPORTE (08:00 – 14:00 HLV)";
+  else if (hora >= 12 && hora < 20) turnoTexto = "SEGUNDO REPORTE (14:00 – 20:00 HLV)";
+  else                               turnoTexto = "MONITOREO ESPECIAL (NOCTURNO)";
+  document.getElementById('turno-info').textContent = turnoTexto;
+
+  const rangoHorario = hora >= 5 && hora < 12
+    ? "08:00 a 14:00 HLV"
+    : hora >= 12 && hora < 20
+      ? "14:00 a 20:00 HLV"
+      : "periodo de monitoreo especial";
+
+  try {
+    const meteoUrl = `https://api.open-meteo.com/v1/forecast`
+      + `?latitude=10.19&longitude=-71.31`
+      + `&current=temperature_2m,apparent_temperature,relative_humidity_2m,`
+      + `weather_code,wind_speed_10m,wind_direction_10m,visibility,uv_index`
+      + `&daily=temperature_2m_max,temperature_2m_min,`
+      + `apparent_temperature_max,apparent_temperature_min,`
+      + `relative_humidity_2m_max,relative_humidity_2m_min,`
+      + `precipitation_probability_max,wind_speed_10m_max,uv_index_max`
+      + `&timezone=auto&forecast_days=1&nocache=${Date.now()}`;
+
+    const [cieloConsensoInameh, meteoRes] = await Promise.all([
+      obtenerOndasTropicales(),
+      fetchConTimeout(meteoUrl, 10000)
+    ]);
+
+    const data    = await meteoRes.json();
+    const tActVal = data.current.temperature_2m;
+    const sActVal = data.current.apparent_temperature;
+    const hActVal = data.current.relative_humidity_2m;
+    const pLluvia = data.daily.precipitation_probability_max[0];
+
+    let uvVal = null;
+    if (data.current.uv_index != null) {
+      uvVal = data.current.uv_index;
+    } else if (data.daily.uv_index_max?.[0] != null) {
+      uvVal = data.daily.uv_index_max[0];
+    }
+
+    document.getElementById('t_now').value = Math.round(tActVal) + "°C";
+    document.getElementById('t_min').value = Math.round(data.daily.temperature_2m_min[0]) + "°C";
+    document.getElementById('t_max').value = Math.round(data.daily.temperature_2m_max[0]) + "°C";
+
+    document.getElementById('s_now').value = Math.round(sActVal) + "°C";
+    document.getElementById('s_min').value = Math.round(data.daily.apparent_temperature_min[0]) + "°C";
+    document.getElementById('s_max').value = Math.round(data.daily.apparent_temperature_max[0]) + "°C";
+
+    document.getElementById('h_now').value = Math.round(hActVal) + "%";
+    document.getElementById('h_min').value = Math.round(data.daily.relative_humidity_2m_min[0]) + "%";
+    document.getElementById('h_max').value = Math.round(data.daily.relative_humidity_2m_max[0]) + "%";
+
+    document.getElementById('lluvia_p').value = pLluvia + "%";
+
+    const vis = data.current.visibility;
+    document.getElementById('visib').value = vis != null ? (vis / 1000).toFixed(1) + " km" : "N/D";
+
+    document.getElementById('v_vel').value = Math.round(data.current.wind_speed_10m) + " km/h";
+    document.getElementById('v_max').value = Math.round(data.daily.wind_speed_10m_max[0]) + " km/h";
+    const dirs = ["Norte","Noreste","Este","Sureste","Sur","Suroeste","Oeste","Noroeste"];
+    const dirViento = dirs[Math.round(data.current.wind_direction_10m / 45) % 8];
+    document.getElementById('v_dir').value = dirViento;
+
+    if (uvVal !== null) {
+      document.getElementById('uv_index').value = uvVal.toFixed(1);
+      aplicarClasificacionUV(uvVal);
+    } else {
+      document.getElementById('uv_index').value = "N/D";
+      document.getElementById('uv_index').className = "actual";
+    }
+
+    ['t_now','s_now','h_now','lluvia_p','v_vel','uv_index'].forEach(pulsarCampo);
+
+    const hist = JSON.parse(localStorage.getItem('historial_clima')) || [];
+    if (hist.length > 0) {
+      obtenerFlecha(tActVal, hist[0].temp, 't-tend');
+      obtenerFlecha(sActVal, hist[0].sens, 's-tend');
+      obtenerFlecha(hActVal, hist[0].hum,  'h-tend');
+    }
+
+    if (!cieloManual) {
+      const cod = data.current.weather_code;
+      let estadoConsenso;
+      if (cieloConsensoInameh) {
+        estadoConsenso = cieloConsensoInameh;
+      } else if (pLluvia < 15) {
+        estadoConsenso = cod <= 1 ? "Despejado (Cielo Limpio)" : "Mayormente Soleado";
+      } else if (pLluvia < 50) {
+        estadoConsenso = cod === 2 ? "Parcialmente Nublado"
+                       : cod === 3 ? "Nublado (Cubierto)"
+                       : "Nubosidad Variable";
+      } else {
+        estadoConsenso = cod >= 61 && cod <= 67 ? "Lluvia Moderada"
+                       : cod >= 80 ? "Chubascos Dispersos"
+                       : cod >= 95 ? "Inestabilidad (Tormentas)"
+                       : "Nubosidad Variable";
+      }
+      document.getElementById('cielo').value = estadoConsenso;
+    }
+
+    const cieloActual = document.getElementById('cielo').value;
+    const obsAuto = `Para el periodo de ${rangoHorario}, se prevé cielo ${cieloActual.toLowerCase()} con un ${pLluvia}% de probabilidad de precipitaciones. Viento del ${dirViento} a ${Math.round(data.current.wind_speed_10m)} km/h, con ráfagas de hasta ${Math.round(data.daily.wind_speed_10m_max[0])} km/h. Temperatura actual ${Math.round(tActVal)}°C, sensación térmica ${Math.round(sActVal)}°C.`;
+
+    if (!obsManual) {
+      document.getElementById('modal-textarea').value = obsAuto;
+      document.getElementById('obs_final').value      = obsAuto;
+    }
+
+    const esCritico = tActVal > 38 || sActVal >= 40 || pLluvia >= 75;
+    const btnAlerta = document.getElementById('btn-alerta-inmediata');
+
+    if (esCritico) {
+      syncLabel.style.background = "#c62828";
+      syncLabel.style.color      = "white";
+      syncLabel.textContent      = `⚠️ ALERTA CRÍTICA — ${ahora.toLocaleTimeString('es-ES',{hour12:false})}`;
+      if (!ultimaAlertaEstado) { emitirAlertaSonora(); ultimaAlertaEstado = true; }
+      mostrarToast('¡CONDICIÓN CRÍTICA DETECTADA!', 'warning');
+      if (btnAlerta) btnAlerta.classList.add('activo');
+    } else {
+      syncLabel.style.background = "#2e7d32";
+      syncLabel.style.color      = "white";
+      syncLabel.textContent      = `✅ ACTUALIZADO — ${ahora.toLocaleTimeString('es-ES',{hour12:false})}`;
+      ultimaAlertaEstado = false;
+      if (btnAlerta) btnAlerta.classList.remove('activo');
+    }
+
+    ultimaSyncExitosa = Date.now();
+    reintentos = 0;
+    programarProximaSync(INTERVALO_SEG);
+
+  } catch(e) {
+    reintentos++;
+    console.error("Error sincronizar():", e);
+    const delay = reintentos <= 3 ? 30 : INTERVALO_SEG;
+    syncLabel.style.background = "#b71c1c";
+    syncLabel.style.color      = "white";
+    syncLabel.textContent      = reintentos <= 3
+      ? `⚠️ SIN CONEXIÓN — reintento ${reintentos}/3 en ${delay}s`
+      : "⚠️ SIN CONEXIÓN — reintentando en ciclo normal";
+    mostrarToast('Error al obtener datos. Reintentando...', 'warning');
+    programarProximaSync(delay);
+  }
+}
+
+/* ─── Cielo manual / reset ─── */
+function resetCieloAuto() {
+  cieloManual = false;
+  document.getElementById('btn-cielo-auto').style.display = 'none';
+}
+
+/* ─── Copiar con fallback ─── */
+function copiarTexto(text) {
+  if (navigator.clipboard) return navigator.clipboard.writeText(text);
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy') ? resolve() : reject(new Error('execCommand falló'));
+    document.body.removeChild(ta);
+  });
+}
+
+/* ════════════════════════════════════════════
+   MAPA DE RADAR — canvas propio sin controles
+   OSM (base) + RainViewer (radar) + overlay
+   de datos del reporte. Sin getDisplayMedia.
+   ════════════════════════════════════════════ */
+
+function latLonToTile(lat, lon, z) {
+  const x      = Math.floor((lon + 180) / 360 * Math.pow(2, z));
+  const latRad = lat * Math.PI / 180;
+  const y      = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, z));
+  return { x, y };
+}
+
+/* Pixel exacto (dentro del canvas) donde cae lat/lon dado origen tile (sx,sy) */
+function latLonToPixel(lat, lon, z, sx, sy, TS) {
+  const n    = Math.pow(2, z);
+  const px   = (lon + 180) / 360 * n * TS - sx * TS;
+  const latR = lat * Math.PI / 180;
+  const py   = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n * TS - sy * TS;
+  return { px: Math.round(px), py: Math.round(py) };
+}
+
+function cargarImagen(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+async function capturarMapaActual() {
+  if (!navigator.mediaDevices?.getDisplayMedia) {
+    throw new Error('getDisplayMedia no soportado');
+  }
+
+  /* 1. Ocultar sidebar + botón restaurar para que no aparezcan en la captura */
+  prepararCaptura();
+  document.getElementById('btn-restore').style.display = 'none';
+  await new Promise(r => setTimeout(r, 380));
+
+  /* 2. Rect del map-container YA expandido */
+  const mapEl = document.getElementById('map-container');
+  const rect  = mapEl.getBoundingClientRect();
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: 'browser', preferCurrentTab: true, frameRate: 5 },
+      audio: false,
+      selfBrowserSurface: 'include'
+    });
+  } catch(e) {
+    togglePanel();
+    throw e;
+  }
+
+  const video = document.createElement('video');
+  video.srcObject = stream;
+  video.muted = true;
+
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = () => video.play().then(resolve).catch(reject);
+      video.onerror = reject;
+      setTimeout(() => reject(new Error('timeout')), 6000);
+    });
+    await new Promise(r => setTimeout(r, 500));
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) throw new Error('Frame vacío');
+
+    /* 3. Factor de escala CSS-pixels → stream-pixels
+          El stream captura a resolución física del monitor (DPR), o en algunos
+          navegadores al tamaño lógico de la ventana. Calculamos ambos factores. */
+    const scaleX = vw / window.innerWidth;
+    const scaleY = vh / window.innerHeight;
+
+    /* 4. Área base del map-container en pixels del stream */
+    const cx = Math.round(rect.left   * scaleX);
+    const cy = Math.round(rect.top    * scaleY);
+    const cw = Math.round(rect.width  * scaleX);
+    const ch = Math.round(rect.height * scaleY);
+
+    /* 5. Recorte de controles de Windy embed (en CSS px, escala automática)
+       ┌─────────────────────────────────────┐  ← top: logo Windy ~30px
+       │  Logo        [Radar del tiempo] [+] │  ← right: botones ~60px
+       │                                     │
+       │         (mapa limpio)               │
+       │                                     │
+       └─────────────────────────────────────┘
+       ← barra tiempo + escala colores ~80px ─┘
+    */
+    const TRIM_TOP_CSS    = 60;    // logo Windy.com + badge "Radar del tiempo"
+    const TRIM_BOTTOM_CSS = 155;   // barra timeline + controles play + escala colores dBZ
+    const TRIM_LEFT_CSS   = 0;
+    const TRIM_RIGHT_CSS  = 62;    // botones +/− zoom
+
+    const trimTop    = Math.round(TRIM_TOP_CSS    * scaleY);
+    const trimBottom = Math.round(TRIM_BOTTOM_CSS * scaleY);
+    const trimLeft   = Math.round(TRIM_LEFT_CSS   * scaleX);
+    const trimRight  = Math.round(TRIM_RIGHT_CSS  * scaleX);
+
+    const srcX = cx + trimLeft;
+    const srcY = cy + trimTop;
+    const srcW = cw - trimLeft - trimRight;
+    const srcH = ch - trimTop  - trimBottom;
+
+    /* 6. Dibujar zona recortada → canvas final (relación natural) */
+    const canvas = document.createElement('canvas');
+    canvas.width  = srcW;
+    canvas.height = srcH;
+    canvas.getContext('2d').drawImage(video, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+
+    return canvas;
+
+  } finally {
+    stream.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+    togglePanel();
+  }
+}
+
+async function generarCanvasMapa() {
+  /* Zoom 9 = mismo que el iframe Windy; grilla 5×4 tiles para dar
+     suficiente contexto regional (Zulia + costa + Andes)            */
+  const LAT = 10.19, LON = -71.31, ZOOM = 9;
+  const TS   = 256;
+  const COLS = 5, ROWS = 4;
+
+  const centro = latLonToTile(LAT, LON, ZOOM);
+  /* Centrar Lagunillas en el canvas */
+  const sx = centro.x - Math.floor(COLS / 2);
+  const sy = centro.y - Math.floor(ROWS / 2);
+
+  const W = TS * COLS;   // 1280 px
+  const H = TS * ROWS;   // 1024 px
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  /* Fondo oscuro */
+  ctx.fillStyle = '#1a2a3a';
+  ctx.fillRect(0, 0, W, H);
+
+  /* ── 1. Obtener timestamp radar RainViewer ── */
+  let radarPath = null;
+  try {
+    const rv = await Promise.race([
+      fetch('https://api.rainviewer.com/public/weather-maps.json').then(r => r.json()),
+      new Promise((_, rej) => setTimeout(() => rej(), 5000))
+    ]);
+    const past = rv?.radar?.past;
+    if (past?.length) radarPath = past[past.length - 1].path;
+  } catch(e) { /* continuar sin radar */ }
+
+  /* ── 2. Tiles OSM oscuro (CartoDB Dark) + radar en paralelo ── */
+  const tileList = [];
+  for (let row = 0; row < ROWS; row++)
+    for (let col = 0; col < COLS; col++)
+      tileList.push({ col, row, tx: sx + col, ty: sy + row });
+
+  await Promise.all(tileList.map(async ({ col, row, tx, ty }) => {
+    /* Base: CartoDB Dark Matter (sin etiquetas de UI de Windy) */
+    const baseUrl = `https://basemaps.cartocdn.com/dark_nolabels/${ZOOM}/${tx}/${ty}.png`;
+    const base = await cargarImagen(baseUrl);
+    if (base) {
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(base, col * TS, row * TS, TS, TS);
+    }
+
+    /* Radar RainViewer encima */
+    if (radarPath) {
+      const radar = await cargarImagen(
+        `https://tilecache.rainviewer.com/v2/radar${radarPath}/256/${ZOOM}/${tx}/${ty}/4/1_1.png`
+      );
+      if (radar) {
+        ctx.globalAlpha = 0.75;
+        ctx.drawImage(radar, col * TS, row * TS, TS, TS);
+        ctx.globalAlpha = 1.0;
+      }
+    }
+  }));
+
+  /* ── 3. Etiquetas de ciudades (capa labels de CartoDB encima del radar) ── */
+  await Promise.all(tileList.map(async ({ col, row, tx, ty }) => {
+    const labels = await cargarImagen(
+      `https://basemaps.cartocdn.com/dark_only_labels/${ZOOM}/${tx}/${ty}.png`
+    );
+    if (labels) {
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(labels, col * TS, row * TS, TS, TS);
+      ctx.globalAlpha = 1.0;
+    }
+  }));
+
+  /* ── 4. Posición exacta de Lagunillas en píxeles ── */
+  const { px, py } = latLonToPixel(LAT, LON, ZOOM, sx, sy, TS);
+
+  /* Halo de énfasis */
+  const grad = ctx.createRadialGradient(px, py, 6, px, py, 38);
+  grad.addColorStop(0, 'rgba(255,100,0,0.35)');
+  grad.addColorStop(1, 'rgba(255,100,0,0)');
+  ctx.beginPath();
+  ctx.arc(px, py, 38, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* Marcador principal */
+  ctx.beginPath();
+  ctx.arc(px, py, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#FF4400';
+  ctx.fill();
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  /* Punto central blanco */
+  ctx.beginPath();
+  ctx.arc(px, py, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'white';
+  ctx.fill();
+
+  /* Etiqueta de ciudad */
+  ctx.font = 'bold 13px Arial';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+  ctx.strokeText('Lagunillas', px + 13, py + 5);
+  ctx.fillStyle = 'white';
+  ctx.fillText('Lagunillas', px + 13, py + 5);
+
+  /* ── 5. Overlay de datos del reporte (esquina superior izquierda) ── */
+  const tNow  = document.getElementById('t_now').value  || '—';
+  const sNow  = document.getElementById('s_now').value  || '—';
+  const hNow  = document.getElementById('h_now').value  || '—';
+  const vVel  = document.getElementById('v_vel').value  || '—';
+  const vDir  = document.getElementById('v_dir').value  || '—';
+  const lluv  = document.getElementById('lluvia_p').value || '—';
+  const uvVal = document.getElementById('uv_index').value || '—';
+  const cielo = document.getElementById('cielo').value  || '—';
+
+  const ahora = new Date();
+  const horaStr = ahora.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit', hour12:false}) + ' HLV';
+  const fechaStr = ahora.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+  const PAD = 12, LH = 19;
+  const lineas = [
+    `⛈ SALA SITUACIONAL — PCAD LAGUNILLAS`,
+    `📅 ${fechaStr}  🕐 ${horaStr}`,
+    `🌡 Temp: ${tNow}  |  Sens: ${sNow}  |  Hum: ${hNow}`,
+    `💨 Viento: ${vDir} ${vVel}  |  Lluvia: ${lluv}`,
+    `☀ UV: ${uvVal}  |  ${cielo}`
+  ];
+
+  const boxW = 410, boxH = PAD * 2 + LH * lineas.length + 4;
+  const bx = 10, by = 10;
+
+  /* Fondo semitransparente */
+  ctx.fillStyle = 'rgba(0,20,50,0.82)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, boxW, boxH, 7);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,102,0,0.9)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  /* Texto */
+  lineas.forEach((txt, i) => {
+    const y = by + PAD + LH * i + LH * 0.75;
+    ctx.font = i === 0 ? 'bold 12px Arial' : '11px Arial';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+    ctx.strokeText(txt, bx + PAD, y);
+    ctx.fillStyle = i === 0 ? '#FF9900' : 'white';
+    ctx.fillText(txt, bx + PAD, y);
+  });
+
+  /* ── 6. Escala gráfica (esquina inferior derecha) ── */
+  /* A zoom 9, 1 tile OSM = 256px ≈ 156 km en el ecuador ajustado por latitud */
+  const metersPerPx = (156543.03 * Math.cos(LAT * Math.PI / 180)) / Math.pow(2, ZOOM);
+  const scaleKm = Math.round(metersPerPx * 80 / 1000);
+  const scaleW  = Math.round(scaleKm * 1000 / metersPerPx);
+  const scx = W - scaleW - 14;
+  const scy = H - 28;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(scx - 6, scy - 14, scaleW + 12, 22);
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(scx, scy); ctx.lineTo(scx, scy - 6);
+  ctx.moveTo(scx, scy); ctx.lineTo(scx + scaleW, scy);
+  ctx.moveTo(scx + scaleW, scy); ctx.lineTo(scx + scaleW, scy - 6);
+  ctx.stroke();
+  ctx.font = 'bold 10px Arial';
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${scaleKm} km`, scx + scaleW / 2, scy - 8);
+  ctx.textAlign = 'left';
+
+  /* ── 7. Atribución legal (franja inferior) ── */
+  ctx.fillStyle = 'rgba(0,0,0,0.60)';
+  ctx.fillRect(0, H - 16, W, 16);
+  ctx.font = '8px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillText('© OpenStreetMap contributors | © CARTO | Radar: RainViewer | PCAD Lagunillas', 6, H - 4);
+
+  return canvas;
+}
+
+/* ─── GENERAR REPORTE PCAD ─── */
+async function generarReporte() {
+  const ahora  = new Date();
+  const hlv    = ahora.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit', hour12:false});
+  const fechaF = `${String(ahora.getDate()).padStart(2,'0')}/${String(ahora.getMonth()+1).padStart(2,'0')}/${ahora.getFullYear()}`;
+
+  const vDir    = document.getElementById('v_dir').value;
+  const vVelNum = document.getElementById('v_vel').value.replace(/\s*km\/h/i, '');
+  const vMaxNum = document.getElementById('v_max').value.replace(/\s*km\/h/i, '');
+  const vientoReporte = `${vDir} ${vVelNum} – ${vMaxNum} km/h`;
+
+  const tNow  = document.getElementById('t_now').value;
+  const sNow  = document.getElementById('s_now').value;
+  const hNow  = document.getElementById('h_now').value;
+  const uvVal = document.getElementById('uv_index').value;
+
+  /* Bloque de Ondas Tropicales */
+  let bloqueOnda = "";
+  if (document.getElementById('activar_onda').checked) {
+    const nroA  = document.getElementById('onda_nro').value;
+    const lonA  = document.getElementById('onda_loc').value;
+    const latA  = document.getElementById('onda_lat').value;
+    const velA  = document.getElementById('onda_vel').value;
+    const descA = document.getElementById('onda_desc').value;
+    const nroB  = document.getElementById('onda_nro_b').value;
+    const lonB  = document.getElementById('onda_loc_b').value;
+    const latB  = document.getElementById('onda_lat_b').value;
+    const velB  = document.getElementById('onda_vel_b').value;
+    const descB = document.getElementById('onda_desc_b').value;
+
+    const tieneOndaA = nroA || lonA || latA || velA || descA;
+    const tieneOndaB = nroB || lonB || latB || velB || descB;
+
+    if (tieneOndaA || tieneOndaB) {
+      bloqueOnda = "\n*MONITOREO DE ONDAS TROPICALES:*";
+      if (tieneOndaA) {
+        bloqueOnda += `\n* Onda Tropical Nro. ${nroA || '—'}.`;
+        if (lonA && latA) bloqueOnda += `\n  Ubicación: Cerca de los ${lonA} y al sur de los ${latA}.`;
+        if (velA)         bloqueOnda += `\n  Desplazamiento: ${velA}.`;
+        if (descA)        bloqueOnda += `\n  Estatus: ${descA}`;
+      }
+      if (tieneOndaA && tieneOndaB) bloqueOnda += "\n";
+      if (tieneOndaB) {
+        bloqueOnda += `\n* Onda Tropical Nro. ${nroB || '—'}.`;
+        if (lonB && latB) bloqueOnda += `\n  Ubicación: Cerca de los ${lonB} y al sur de los ${latB}.`;
+        if (velB)         bloqueOnda += `\n  Desplazamiento: ${velB}.`;
+        if (descB)        bloqueOnda += `\n  Estatus: ${descB}`;
+      }
+      bloqueOnda += "\n";
+    }
+  }
+
+  const dias  = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  const encabezado = `*SISTEMA NACIONAL GESTIÓN DE RIESGO*\n*PROTECCIÓN CIVIL*\n*REDAN OCCIDENTE*\n \n*FECHA:* ${fechaF}\n*ZOEDAN:* Zulia.\n*MUNICIPIO:* Lagunillas.\n*PARROQUIA:* Paraute.\n*CUADRANTE DE PAZ:* P-08`;
+
+  const cuerpo =
+`\n\n*TIPO DE EVENTO:* Monitoreo Climatológico.
+*ESTATUS:* En Desarrollo.
+
+*SITUACIÓN GENERAL:*
+Siendo las ${hlv} HLV, monitoreo en el Municipio Lagunillas para hoy ${dias[ahora.getDay()]} ${ahora.getDate()} de ${meses[ahora.getMonth()]} de ${ahora.getFullYear()}.
+
+*PRONÓSTICO:*
+* Condición del Cielo: ${document.getElementById('cielo').value}
+* Índice UV: ${uvVal}
+* Temperatura: ${tNow} (Mín: ${document.getElementById('t_min').value} / Máx: ${document.getElementById('t_max').value})
+* Sensación Térmica: ${sNow} (Mín: ${document.getElementById('s_min').value} / Máx: ${document.getElementById('s_max').value})
+* Humedad: ${hNow} (Mín: ${document.getElementById('h_min').value} / Máx: ${document.getElementById('h_max').value})
+* Viento: ${vientoReporte}
+* Prob. Lluvia: ${document.getElementById('lluvia_p').value}
+
+*OBSERVACIONES:* ${document.getElementById('obs_final').value}
+${bloqueOnda}
+*REPORTA:*
+${CONFIG.funcionario}
+
+*DIRECTOR MUNICIPAL:*
+${CONFIG.director}
+
+*¡Solo Queremos Salvar Vidas!*`;
+
+  _reporteTexto      = encabezado + cuerpo;
+  _esAlertaInmediata = false;   // botón verde → sin punto rojo
+  document.getElementById('preview-area').textContent = _reporteTexto;
+  abrirModal('modalReporte');
+}
+
+/* ─── ALERTA INMEDIATA ─── */
+function generarAlertaInmediata() {
+  const ahora  = new Date();
+  const hlv    = ahora.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit', hour12:false});
+  const fechaF = `${String(ahora.getDate()).padStart(2,'0')}/${String(ahora.getMonth()+1).padStart(2,'0')}/${ahora.getFullYear()}`;
+  const dias   = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const meses  = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  const vDir    = document.getElementById('v_dir').value;
+  const vVelNum = document.getElementById('v_vel').value.replace(/\s*km\/h/i,'');
+  const vMaxNum = document.getElementById('v_max').value.replace(/\s*km\/h/i,'');
+  const cielo   = document.getElementById('cielo').value;
+  const tNow    = document.getElementById('t_now').value;
+  const sNow    = document.getElementById('s_now').value;
+  const hNow    = document.getElementById('h_now').value;
+  const uvVal   = document.getElementById('uv_index').value;
+  const pLluvia = document.getElementById('lluvia_p').value;
+
+  const tVal  = parseFloat(tNow)  || 0;
+  const sVal  = parseFloat(sNow)  || 0;
+  const pVal  = parseFloat(pLluvia) || 0;
+  const vMax  = parseFloat(vMaxNum) || 0;
+
+  // ── Detectar condición dominante ──
+  const hayViento   = vMax >= 30 || /ráfaga|fuerte|temporal|tormenta/i.test(cielo);
+  const hayLluvia   = pVal >= 75 || /lluvia|chubasc|aguacer|tormenta/i.test(cielo);
+  const hayCalor    = tVal > 38  || sVal >= 40;
+  const hayTormenta = /tormenta|eléctric|rayo|trueno/i.test(cielo);
+  const hayNeblina  = /neblina|niebla|bruma/i.test(cielo);
+
+  // ── Generar OBSERVACIONES dinámicas ──
+  let obs = '', rec = '';
+
+  if (hayTormenta) {
+    obs = `Se registra actividad eléctrica y tormenta severa sobre la jurisdicción de Lagunillas, con condición de cielo: *${cielo}*. Probabilidad de precipitaciones del ${pLluvia}, vientos de ${vDir} con ráfagas de hasta ${vMaxNum} km/h. Situación de alto riesgo para la población expuesta.`;
+    rec = `Suspender actividades al aire libre. Alejarse de árboles, postes y estructuras metálicas. Permanecer en interiores hasta que cesen las descargas eléctricas. Evitar el uso de equipos conectados a la corriente eléctrica.`;
+  } else if (hayViento && hayLluvia) {
+    obs = `Se registran vientos sostenidos con ráfagas de alta intensidad del ${vDir} de hasta ${vMaxNum} km/h, acompañados de precipitaciones con probabilidad del ${pLluvia}. Condición de cielo: *${cielo}*. Riesgo inminente de desprendimiento de estructuras ligeras, caída de tendido eléctrico y árboles.`;
+    rec = `Retirar objetos de balcones o ventanas que puedan ser arrastrados. Evitar estacionar vehículos cerca de árboles de gran magnitud o vallas publicitarias. Asegurar techos de zinc y estructuras propensas a desprendimientos.`;
+  } else if (hayViento) {
+    obs = `Se registran vientos fuertes sostenidos del ${vDir} con ráfagas de hasta ${vMaxNum} km/h sobre la jurisdicción. Condición de cielo: *${cielo}*. Riesgo de daños estructurales en edificaciones ligeras y caída de objetos elevados.`;
+    rec = `Asegurar estructuras metálicas, techos y objetos en alturas. Evitar zonas con árboles de gran porte o estructuras inestables. No estacionar vehículos bajo arboles o postes.`;
+  } else if (hayLluvia) {
+    obs = `Se prevén precipitaciones significativas sobre el Municipio Lagunillas con probabilidad del ${pLluvia}. Condición de cielo: *${cielo}*. Existe riesgo de acumulación de agua en vías de baja cota y posibles inundaciones en sectores vulnerables.`;
+    rec = `Evitar transitar por zonas de baja cota o sectores propensos a inundaciones. No cruzar vías con agua en movimiento. Asegurarse de que los sistemas de drenaje estén libres de obstrucciones.`;
+  } else if (hayCalor) {
+    obs = `Se registra temperatura de ${tNow} con sensación térmica de ${sNow}, condición que representa un riesgo de golpe de calor para la población expuesta al sol directo. Índice UV: ${uvVal}.`;
+    rec = `Mantenerse hidratado y evitar exposición solar en horario de 10:00 a 16:00 HLV. Usar ropa ligera y protector solar. Prestar especial atención a niños, adultos mayores y personas con condiciones médicas previas.`;
+  } else if (hayNeblina) {
+    obs = `Se registra condición de *${cielo}* sobre la jurisdicción, reduciendo la visibilidad vial y marítima. Temperatura ${tNow}, humedad ${hNow}.`;
+    rec = `Reducir velocidad y encender luces antiniebla al conducir. Mantener distancia prudencial con otros vehículos. Evitar navegación en zonas de baja visibilidad.`;
+  } else {
+    obs = `Se monitorean las condiciones atmosféricas sobre el Municipio Lagunillas. Condición de cielo: *${cielo}*. Temperatura ${tNow}, sensación térmica ${sNow}, humedad ${hNow}, probabilidad de lluvia ${pLluvia}.`;
+    rec = `Mantener monitoreo constante de las condiciones. Informar a la población sobre cualquier cambio en el estado del tiempo. Activar protocolos preventivos ante variación repentina de las condiciones.`;
+  }
+
+  const encabezado = `*SISTEMA NACIONAL GESTIÓN DE RIESGO*\n*PROTECCIÓN CIVIL*\n*REDAN OCCIDENTE*\n \n*FECHA:* ${fechaF}\n*ZOEDAN:* Zulia.\n*MUNICIPIO:* Lagunillas.\n*PARROQUIA:* Paraute.\n*CUADRANTE DE PAZ:* P-08`;
+
+  const cuerpo =
+`\n\n*TIPO DE EVENTO:* Alerta Meteorológica.
+*ESTATUS:* ⚠️ ACTIVO / ALERTA.
+
+*SITUACIÓN GENERAL:*
+Siendo las ${hlv} HLV, se emite alerta meteorológica para el Municipio Lagunillas, correspondiente al día ${dias[ahora.getDay()]} ${ahora.getDate()} de ${meses[ahora.getMonth()]} de ${ahora.getFullYear()}.
+
+*PRONÓSTICO:*
+* Condición del Cielo: ${cielo}
+* Índice UV: ${uvVal}
+* Temperatura: ${tNow} (Mín: ${document.getElementById('t_min').value} / Máx: ${document.getElementById('t_max').value})
+* Sensación Térmica: ${sNow} (Mín: ${document.getElementById('s_min').value} / Máx: ${document.getElementById('s_max').value})
+* Humedad: ${hNow} (Mín: ${document.getElementById('h_min').value} / Máx: ${document.getElementById('h_max').value})
+* Viento: ${vDir} ${vVelNum} – ${vMaxNum} km/h
+* Prob. Lluvia: ${pLluvia}
+
+*OBSERVACIONES:* ${obs}
+
+*RECOMENDACIÓN:* ${rec}
+
+*REPORTA:*
+${CONFIG.funcionario}
+
+*DIRECTOR MUNICIPAL:*
+${CONFIG.director}
+
+*¡Solo Queremos Salvar Vidas!*`;
+
+  _reporteTexto      = encabezado + cuerpo;
+  _esAlertaInmediata = true;    // botón rojo → punto rojo en historial
+  document.getElementById('preview-area').textContent = _reporteTexto;
+  abrirModal('modalReporte');
+}
+
+/* ─── MODO CAPTURA ─── */
+function cancelarCaptura() {
+  const el = document.getElementById('captura-helper');
+  if (el) el.style.display = 'none';
+}
+
+async function continuarCaptura() {
+  const helper = document.getElementById('captura-helper');
+  if (helper) helper.style.display = 'none';
+
+  const imgEl     = document.getElementById('reporte-mapa-img');
+  const loadingEl = document.getElementById('reporte-mapa-loading');
+  const loadingTx = document.getElementById('mapa-loading-text');
+  imgEl.style.display = 'none';
+
+  // Leer imagen del portapapeles
+  let pegado = false;
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const tipo = item.types.find(t => t.startsWith('image/'));
+      if (tipo) {
+        const blob   = await item.getType(tipo);
+        const url    = URL.createObjectURL(blob);
+        const tmpImg = new Image();
+        await new Promise(res => { tmpImg.onload = res; tmpImg.src = url; });
+        const c = document.createElement('canvas');
+        c.width  = tmpImg.naturalWidth;
+        c.height = tmpImg.naturalHeight;
+        c.getContext('2d').drawImage(tmpImg, 0, 0);
+        _canvasMapa = c;
+        imgEl.src = c.toDataURL('image/jpeg', 0.92);
+        imgEl.style.display = 'block';
+        URL.revokeObjectURL(url);
+        pegado = true;
+        mostrarToast('Captura cargada correctamente ✓', 'ok');
+        break;
+      }
+    }
+  } catch(e) {
+    console.warn('[clipboard]', e);
+  }
+
+  // Fallback si no había imagen en portapapeles
+  if (!pegado) {
+    mostrarToast('Sin imagen en portapapeles — generando radar automático', 'warning');
+    loadingEl.style.display = 'flex';
+    loadingTx.textContent   = '🛰 Generando mapa radar...';
+    try {
+      _canvasMapa = await generarCanvasMapa();
+      imgEl.src   = _canvasMapa.toDataURL('image/jpeg', 0.92);
+      imgEl.style.display = 'block';
+    } catch(e) {
+      console.warn('[canvasMapa]', e);
+    } finally {
+      loadingEl.style.display = 'none';
+    }
+  }
+
+  document.getElementById('preview-area').textContent = _reporteTexto;
+  abrirModal('modalReporte');
+}
+
+/* ─── PEGAR IMAGEN DESDE PORTAPAPELES (Snipping Tool / PrtSc) ─── */
+async function pegarDesdeClipboard() {
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const imageType = item.types.find(t => t.startsWith('image/'));
+      if (imageType) {
+        const blob   = await item.getType(imageType);
+        const bmpUrl = URL.createObjectURL(blob);
+        const imgEl  = document.getElementById('reporte-mapa-img');
+
+        // Convertir a canvas para que funcione con compartir/descargar
+        const tmpImg = new Image();
+        tmpImg.onload = () => {
+          const c  = document.createElement('canvas');
+          c.width  = tmpImg.naturalWidth;
+          c.height = tmpImg.naturalHeight;
+          c.getContext('2d').drawImage(tmpImg, 0, 0);
+          _canvasMapa     = c;
+          imgEl.src       = c.toDataURL('image/jpeg', 0.92);
+          imgEl.style.display = 'block';
+          URL.revokeObjectURL(bmpUrl);
+          mostrarToast('Imagen del portapapeles aplicada ✓', 'ok');
+        };
+        tmpImg.src = bmpUrl;
+        return;
+      }
+    }
+    mostrarToast('No hay imagen en el portapapeles', 'warning');
+  } catch(e) {
+    // Fallback: pedir permiso
+    mostrarToast('Permiso denegado — usa Ctrl+V directo en el modal', 'warning');
+    console.warn('[clipboard]', e);
+  }
+}
+
+// Ctrl+V automático cuando el modal de reporte está visible
+document.addEventListener('paste', (e) => {
+  const modal = document.getElementById('modalReporte');
+  if (!modal || modal.style.display === 'none') return;
+
+  const items = e.clipboardData?.items || [];
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const blob   = item.getAsFile();
+      const url    = URL.createObjectURL(blob);
+      const imgEl  = document.getElementById('reporte-mapa-img');
+      const tmpImg = new Image();
+      tmpImg.onload = () => {
+        const c  = document.createElement('canvas');
+        c.width  = tmpImg.naturalWidth;
+        c.height = tmpImg.naturalHeight;
+        c.getContext('2d').drawImage(tmpImg, 0, 0);
+        _canvasMapa     = c;
+        imgEl.src       = c.toDataURL('image/jpeg', 0.92);
+        imgEl.style.display = 'block';
+        URL.revokeObjectURL(url);
+        mostrarToast('Captura pegada como mapa ✓', 'ok');
+      };
+      tmpImg.src = url;
+      e.preventDefault();
+      return;
+    }
+  }
+});
+
+/* ─── CONFIG WhatsApp API ─── */
+const WA_STORAGE = 'pcad_wa_config';
+
+window.toggleOndaFields = (enabled) => {
+  const el = document.getElementById('onda-fields');
+  if (!el) return;
+  el.style.opacity       = enabled ? '1'    : '0.4';
+  el.style.pointerEvents = enabled ? 'auto' : 'none';
+  el.querySelectorAll('input, textarea, select').forEach(f => f.disabled = !enabled);
+};
+
+function guardarConfigWA() {
+  const cfg = {
+    imgbbKey: document.getElementById('cfg-imgbb-key').value.trim(),
+    phone:    document.getElementById('cfg-wa-phone').value.trim(),
+    waKey:    document.getElementById('cfg-wa-key').value.trim()
+  };
+  localStorage.setItem(WA_STORAGE, JSON.stringify(cfg));
+  mostrarToast('Configuración guardada ✓', 'ok');
+}
+
+function cargarConfigWA() {
+  const cfg = JSON.parse(localStorage.getItem(WA_STORAGE) || '{}');
+  if (cfg.imgbbKey) document.getElementById('cfg-imgbb-key').value = cfg.imgbbKey;
+  if (cfg.phone)    document.getElementById('cfg-wa-phone').value  = cfg.phone;
+  if (cfg.waKey)    document.getElementById('cfg-wa-key').value    = cfg.waKey;
+  return cfg;
+}
+
+async function subirImagenImgBB(canvas, apiKey) {
+  const base64 = canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
+  const fd = new FormData();
+  fd.append('key', apiKey);
+  fd.append('image', base64);
+  fd.append('name', `reporte_pcad_${Date.now()}`);
+  const res  = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: fd });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'ImgBB error');
+  return json.data.url;
+}
+
+/* ─── COMPARTIR — CallMeBot + ImgBB (primario) / Web Share (fallback) ─── */
+async function compartirReporte() {
+  const cfg = cargarConfigWA();
+
+  /* ── Opción A: CallMeBot + ImgBB (API configurada) ── */
+  if (cfg.imgbbKey && cfg.phone && cfg.waKey && _canvasMapa) {
+    try {
+      mostrarToast('Subiendo imagen a ImgBB...', 'info');
+      const imgUrl = await subirImagenImgBB(_canvasMapa, cfg.imgbbKey);
+
+      /* Enviar imagen */
+      const imgEndpoint = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(cfg.phone)}&text=Reporte+PCAD+Lagunillas&apikey=${cfg.waKey}&image=${encodeURIComponent(imgUrl)}`;
+      await fetch(imgEndpoint, { mode: 'no-cors' });
+
+      /* Enviar texto (breve pausa para orden) */
+      await new Promise(r => setTimeout(r, 1200));
+      const txtEndpoint = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(cfg.phone)}&text=${encodeURIComponent(_reporteTexto)}&apikey=${cfg.waKey}`;
+      await fetch(txtEndpoint, { mode: 'no-cors' });
+
+      mostrarToast('✓ Reporte enviado por WhatsApp', 'ok');
+      return;
+    } catch(e) {
+      console.warn('[CallMeBot/ImgBB]', e);
+      mostrarToast('Error en API — usando compartir nativo', 'warning');
+    }
+  }
+
+  /* ── Opción B: Web Share API nativa ── */
+  if (navigator.share) {
+    try {
+      const shareData = { text: _reporteTexto };
+      if (_canvasMapa) {
+        const blob = await new Promise(res => _canvasMapa.toBlob(res, 'image/jpeg', 0.92));
+        const file = new File([blob], `reporte_pcad_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        if (navigator.canShare?.({ files: [file] })) shareData.files = [file];
+      }
+      await navigator.share(shareData);
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+
+  /* ── Fallback: copiar texto ── */
+  copiarTexto(_reporteTexto)
+    .then(() => mostrarToast('Texto copiado — configura la API para envío automático', 'info'))
+    .catch(() => {});
+}
+
+/* ─── DESCARGAR MAPA ─── */
+function descargarMapa() {
+  if (!_canvasMapa) {
+    mostrarToast('Mapa aún no disponible.', 'warning');
+    return;
+  }
+  const a = document.createElement('a');
+  a.download = `mapa_lagunillas_${new Date().toISOString().slice(0,10)}.jpg`;
+  a.href = _canvasMapa.toDataURL('image/jpeg', 0.88);
+  a.click();
+}
+
+/* ─── COPIAR Y GUARDAR EN HISTORIAL ─── */
+function copiarYGuardar() {
+  const text = _reporteTexto || document.getElementById('preview-area').textContent;
+  copiarTexto(text)
+    .then(() => {
+      guardarRegistro();
+      cerrarModal('modalReporte');
+      mostrarToast('Reporte copiado y guardado en historial ✓', 'ok');
+    })
+    .catch(() => mostrarToast('Error al copiar', 'warning'));
+}
+
+/* ─── COPIAR Y REGISTRAR ─── */
+function copiarTextoReporte() {
+  const text = _reporteTexto || document.getElementById('preview-area').textContent;
+  copiarTexto(text)
+    .then(() => mostrarToast('Texto del reporte copiado al portapapeles.', 'ok'))
+    .catch(() => mostrarToast('Error al copiar. Seleccione el texto manualmente.', 'warning'));
+}
+
+function guardarRegistro() {
+  const ahora = new Date();
+  const hMil  = ahora.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',hour12:false});
+  let hist = JSON.parse(localStorage.getItem('historial_clima')) || [];
+  hist.unshift({
+    fecha:  ahora.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'}),
+    hora:   hMil,
+    temp:   document.getElementById('t_now').value,
+    sens:   document.getElementById('s_now').value,
+    hum:    document.getElementById('h_now').value,
+    alerta: _esAlertaInmediata   // true = generado con botón ALERTA INMEDIATA (rojo)
+  });
+  if (hist.length > 100) hist.pop();
+  localStorage.setItem('historial_clima', JSON.stringify(hist));
+  actualizarTablaHistorial();
+  mostrarToast('Registro guardado en historial PCAD.', 'ok');
+  cerrarModal('modalReporte');
+}
+
+/* ─── HISTORIAL ─── */
+function limpiarHistorial() {
+  abrirModal('modalConfirmBorrar');
+}
+
+function confirmarBorrarHistorial() {
+  localStorage.removeItem('historial_clima');
+  actualizarTablaHistorial();
+  cerrarModal('modalConfirmBorrar');
+  mostrarToast('Historial borrado.', 'info');
+}
+
+let _histPage = 1;
+const HIST_PAGE_SIZE = 10;
+const HIST_MAX = 100;
+
+function actualizarTablaHistorial(page) {
+  const raw   = JSON.parse(localStorage.getItem('historial_clima')) || [];
+  const hist  = raw.slice(0, HIST_MAX); // máx 100
+  if (page !== undefined) _histPage = page;
+  const total = hist.length;
+  const pages = Math.max(1, Math.ceil(total / HIST_PAGE_SIZE));
+  if (_histPage > pages) _histPage = pages;
+
+  const desde  = (_histPage - 1) * HIST_PAGE_SIZE;
+  const pagina = hist.slice(desde, desde + HIST_PAGE_SIZE);
+
+  const tbody = document.getElementById('historial-body');
+  tbody.innerHTML = '';
+
+  for (const r of pagina) {
+    const tr = document.createElement('tr');
+    if (r.alerta) tr.style.background = 'rgba(197,15,31,0.04)';
+
+    // Fecha/hora sin dot
+    const tdF = document.createElement('td');
+    tdF.textContent = `${r.fecha} ${r.hora}`;
+    tr.appendChild(tdF);
+
+    // Temp, Sens, Hum
+    [r.temp, r.sens, r.hum].forEach(val => {
+      const td = document.createElement('td');
+      td.textContent = val ?? '';
+      if (r.alerta) td.style.color = '#c50f1f';
+      tr.appendChild(td);
+    });
+
+    // Dot al final (derecha)
+    const tdDot = document.createElement('td');
+    tdDot.style.textAlign = 'center';
+    tdDot.innerHTML = r.alerta
+      ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#c50f1f;" title="Alerta inmediata"></span>`
+      : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#107c10;" title="Normal"></span>`;
+    tr.appendChild(tdDot);
+
+    tbody.appendChild(tr);
+  }
+
+  // Paginación
+  const pagEl = document.getElementById('hist-pagination');
+  if (pagEl) {
+    if (pages <= 1) { pagEl.innerHTML = `<span>${total} registros</span>`; return; }
+    const btn = (label, p, dis) =>
+      `<button onclick="actualizarTablaHistorial(${p})" style="padding:2px 8px;border:1px solid #d1d1d1;border-radius:3px;background:${p===_histPage?'#0078d4':'#fff'};color:${p===_histPage?'#fff':'#424242'};font-size:10px;cursor:${dis?'default':'pointer'};opacity:${dis?.5:1};" ${dis?'disabled':''}>${label}</button>`;
+    let nums = '';
+    for (let p = 1; p <= pages; p++) {
+      if (pages <= 7 || p === 1 || p === pages || Math.abs(p - _histPage) <= 1)
+        nums += btn(p, p, false);
+      else if (Math.abs(p - _histPage) === 2)
+        nums += `<span style="padding:0 2px;color:#9e9e9e;">…</span>`;
+    }
+    pagEl.innerHTML = `
+      <span>${desde+1}–${Math.min(desde+HIST_PAGE_SIZE,total)} de ${total}</span>
+      <div style="display:flex;gap:3px;align-items:center;">
+        ${btn('‹', _histPage-1, _histPage===1)}
+        ${nums}
+        ${btn('›', _histPage+1, _histPage===pages)}
+      </div>`;
+  }
+}
+
+/* ════════════════════════════════════════════
+   KPI DASHBOARD
+   ════════════════════════════════════════════ */
+let _kpiCharts = {};
+
+function detectarTurnoKPI(hora) {
+  const h = parseInt(hora.split(':')[0]);
+  if (h >= 5  && h < 12) return 'Primer Reporte';
+  if (h >= 12 && h < 20) return 'Segundo Reporte';
+  return 'Nocturno';
+}
+
+function abrirKPI() {
+  const raw = JSON.parse(localStorage.getItem('historial_clima')) || [];
+  if (!raw.length) { mostrarToast('Sin registros en el historial.', 'warning'); return; }
+
+  /* Parsear y ordenar cronológicamente (más antiguo primero) */
+  const datos = raw.slice().reverse().map(r => ({
+    label:  `${r.fecha} ${r.hora}`,
+    temp:   parseFloat(r.temp),
+    sens:   parseFloat(r.sens),
+    hum:    parseFloat(r.hum),
+    turno:  detectarTurnoKPI(r.hora),
+    alerta: r.alerta === true
+  })).filter(d => !isNaN(d.temp));
+
+  const vals  = k => datos.map(d => d[k]).filter(v => !isNaN(v));
+  const avg   = a => a.length ? (a.reduce((s,v) => s+v, 0) / a.length).toFixed(1) : '—';
+  const mx    = a => a.length ? Math.max(...a).toFixed(1) : '—';
+  const mn    = a => a.length ? Math.min(...a).toFixed(1) : '—';
+
+  const temps = vals('temp'), senss = vals('sens'), hums = vals('hum');
+  const criticos = datos.filter(d => d.alerta === true).length;
+
+  /* ── Tarjetas KPI ── */
+  document.getElementById('kpi-cards').innerHTML = `
+    <div class="kpi-card">
+      <span class="kpi-val">${datos.length}</span>
+      <span class="kpi-lbl">Total Reportes</span>
+      <span class="kpi-sub">Historial disponible</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-val">${avg(temps)}°C</span>
+      <span class="kpi-lbl">Temp. Promedio</span>
+      <span class="kpi-sub">↓${mn(temps)}° &nbsp; ↑${mx(temps)}°</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-val">${avg(senss)}°C</span>
+      <span class="kpi-lbl">Sensación Prom.</span>
+      <span class="kpi-sub">↓${mn(senss)}° &nbsp; ↑${mx(senss)}°</span>
+    </div>
+    <div class="kpi-card ${criticos > 0 ? 'critico' : ''}">
+      <span class="kpi-val" style="color:${criticos > 0 ? '#ffcc80' : '#FF6600'}">${criticos}</span>
+      <span class="kpi-lbl">Alertas Críticas</span>
+      <span class="kpi-sub">Reportes con alerta inmediata</span>
+    </div>`;
+
+  /* ── Destruir gráficas anteriores ── */
+  Object.values(_kpiCharts).forEach(c => c?.destroy());
+  _kpiCharts = {};
+
+  const labels = datos.map(d => d.label);
+  const gridColor = 'rgba(0,0,0,0.06)';
+  const tickFont  = { size: 8 };
+
+  /* ── Gráfica 1: Temperatura + Sensación (línea) ── */
+  _kpiCharts.temp = new Chart(document.getElementById('kpi-chart-temp'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Temperatura',
+          data: temps,
+          borderColor: '#FF6600',
+          backgroundColor: 'rgba(255,102,0,0.10)',
+          tension: 0.4, fill: true,
+          pointRadius: 4, pointHoverRadius: 6,
+          borderWidth: 2
+        },
+        {
+          label: 'Sensación Térmica',
+          data: senss,
+          borderColor: '#c62828',
+          backgroundColor: 'transparent',
+          tension: 0.4, fill: false,
+          borderDash: [6,3],
+          pointRadius: 3, pointHoverRadius: 5,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { font: { size: 10 }, boxWidth: 14 } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y}°C` } }
+      },
+      scales: {
+        x: { ticks: { font: tickFont, maxRotation: 40 }, grid: { color: gridColor } },
+        y: { ticks: { font: tickFont, callback: v => v+'°C' }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  /* ── Gráfica 2: Humedad (barras con color semafórico) ── */
+  _kpiCharts.hum = new Chart(document.getElementById('kpi-chart-hum'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Humedad',
+        data: hums,
+        backgroundColor: hums.map(v =>
+          v >= 90 ? 'rgba(183,28,28,0.80)' :
+          v >= 75 ? 'rgba(230,81,0,0.80)'  :
+                    'rgba(21,101,192,0.75)'),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` Humedad: ${c.parsed.y}%` } }
+      },
+      scales: {
+        x: { ticks: { font: { size: 7 }, maxRotation: 50 }, grid: { display: false } },
+        y: { min: 0, max: 100, ticks: { font: tickFont, callback: v => v+'%' }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  /* ── Gráfica 3: Distribución por turno (dona) ── */
+  const turnos = { 'Primer Reporte': 0, 'Segundo Reporte': 0, 'Nocturno': 0 };
+  datos.forEach(d => turnos[d.turno]++);
+
+  _kpiCharts.turno = new Chart(document.getElementById('kpi-chart-turno'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(turnos),
+      datasets: [{
+        data: Object.values(turnos),
+        backgroundColor: ['#1565c0', '#28a745', '#37474f'],
+        borderWidth: 2,
+        borderColor: '#f8f9fa',
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '58%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 9 }, padding: 8, boxWidth: 12 }
+        },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed} reportes` } }
+      }
+    }
+  });
+
+  abrirModal('modalKPI');
+}
+
+/* ─── INICIO ─── */
+document.addEventListener('DOMContentLoaded', function() {
+  cargarConfigWA();
+  document.getElementById('cielo').addEventListener('change', () => {
+    cieloManual = true;
+    document.getElementById('btn-cielo-auto').style.display = 'inline';
+  });
+  actualizarTablaHistorial();
+  sincronizar();
+});
+</script>
+</body>
+</html>
